@@ -25,7 +25,7 @@ function App() {
   const [token, setToken] = useState<string | null>(tokenFromUrl());
   const [state, setState] = useState<GameState | null>(null);
   const [created, setCreated] = useState<CreateGameResponse | null>(null);
-  const [names, setNames] = useState(["Patrik", "Clawd", "Angelina", "Luna"]);
+  const [names, setNames] = useState(["Patrik", "Clawd"]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
@@ -119,6 +119,10 @@ function App() {
           <div className="hero-badges"><span>🎲 Bearer-token API</span><span>🏘️ 40 spaces</span><span>🌙 4-player chaos</span></div>
           <div className="name-grid">
             {names.map((name, i) => <label key={i}>Player {i + 1}<input value={name} onChange={(e) => setNames(names.map((n, idx) => idx === i ? e.target.value : n))} /></label>)}
+          </div>
+          <div className="player-count-actions">
+            {names.length < 4 && <button className="ghost" type="button" onClick={() => setNames([...names, names.length === 2 ? "Angelina" : "Luna"])}>+ add player</button>}
+            {names.length > 2 && <button className="ghost" type="button" onClick={() => setNames(names.slice(0, -1))}>− remove player</button>}
           </div>
           <button onClick={start} disabled={busy}>{busy ? "Creating…" : "Start table"}</button>
           {error && <p className="error">{error}</p>}

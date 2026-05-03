@@ -829,3 +829,27 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
   .game-mode-shell .classic-board { border-width: 6px; border-radius: 16px; }
   .game-mode-shell .classic-tile { box-shadow: inset 0 1px 0 rgba(255,255,255,.45); }
 }
+
+/* QA patch: readability over decoration. */
+.game-mode-shell .tile strong { font-size: clamp(.58rem, .82vw, .82rem); line-height: 1.08; font-weight: 950; color: #1f1308; }
+.game-mode-shell .tile small { font-size: clamp(.50rem, .68vw, .66rem); line-height: 1.08; font-weight: 800; color: rgba(39,23,11,.76); }
+.game-mode-shell .tile-id { color: rgba(39,23,11,.55); font-weight: 900; }
+.game-mode-shell .classic-tile { padding: 15px 5px 6px; }
+.game-mode-shell .tile.owned .owner-flag { display: none; }
+.game-mode-shell .owner-pennant { min-width: 34px; height: 22px; font-size: .62rem; border-radius: 999px; background-clip: padding-box; }
+.game-mode-shell .owner-edge { height: 8px; opacity: .88; }
+.game-mode-shell .side-bottom .owner-pennant { bottom: 2px; }
+.game-mode-shell .side-top .owner-pennant { top: 2px; }
+.game-mode-shell .side-left .owner-pennant { left: 2px; }
+.game-mode-shell .side-right .owner-pennant { right: 2px; }
+.game-mode-shell .deed-grid span { background: rgba(43, 24, 11, .12); border-color: rgba(43, 24, 11, .22); color: #5b3418; }
+.game-mode-shell .deed-grid strong { color: #1f1308; font-weight: 950; }
+.game-drawer .deed-grid span, .floating-deed .deed-grid span { background: rgba(255, 247, 220, .78); }
+@media (max-width: 760px) {
+  .game-mode-shell .tile strong { font-size: .62rem; }
+  .game-mode-shell .tile small { font-size: .54rem; }
+  .game-mode-shell .owner-pennant { min-width: 30px; height: 20px; font-size: .56rem; }
+}
+
+.player-count-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: -4px 0 14px; }
+.player-count-actions .ghost { min-height: 38px; padding: 0 12px; border-radius: 999px; }
