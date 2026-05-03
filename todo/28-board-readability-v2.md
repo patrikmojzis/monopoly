@@ -93,6 +93,12 @@ Ideas:
 - `Me` and `Sel` controls remain
 - perhaps add `Fit` / `Zoom` controls later
 
+## Research-informed additions
+
+From `29-reference-ui-patterns.md`, strongly consider moving primary turn actions into the center of the board: dice, action prompt, buy/auction/end buttons, and a tiny event feed. This matches RichUp-style board cognition: eyes stay on the table, not on a web dock.
+
+Also prototype side-specific tile orientation: side tiles can rotate toward their board edge, improving physical board feel if readability holds.
+
 ## Concrete implementation phases
 
 ### Board-R1: remove tile clutter

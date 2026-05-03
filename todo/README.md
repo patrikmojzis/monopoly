@@ -51,3 +51,4 @@ Not:
 - `26-sound-system.md` — optional sound layer.
 - `27-v2-qa-replay.md` — QA and replay-readiness checklist.
 - `28-board-readability-v2.md` — board readability/orientation: tile hierarchy, tokens, owner/building clarity, selected/landing state.
+- `29-reference-ui-patterns.md` — research patterns from Monopoly/RichUp-style UI: center-board actions, rotated side tiles, setup/token choices, mobile board-first.

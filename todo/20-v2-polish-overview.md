@@ -29,6 +29,7 @@ This sprint is not random polish. It addresses Patrik’s live playtest feedback
 - V2-C: token figurines + picker (`23`)
 - V2-D: fullscreen board comfort (`24`)
 - V2-H: board readability and orientation (`28`)
+- V2-I: reference UI patterns / center-board action stage (`29`)
 - V2-E: animation system (`25`)
 - V2-F: sound system (`26`)
 - V2-G: QA + replay readiness (`27`)

@@ -30,13 +30,14 @@ Status: Game Mode v1 delivered and QA-smoked. Patrik requested a new TODO/planni
 - [ ] V2-C: token figurines + picker (`23`)
 - [ ] V2-D: fullscreen board comfort (`24`)
 - [ ] V2-H: board readability and orientation (`28`)
+- [ ] V2-I: reference UI patterns / center-board action stage (`29`)
 - [ ] V2-E: animation system (`25`)
 - [ ] V2-F: sound system (`26`)
 - [ ] V2-G: QA/replay readiness (`27`)
 
 ## Next action
 
-Read `20-v2-polish-overview.md`, then implement V2-A (`21-navigation-exit.md`) first. Board readability (`28`) is now the core product focus and should be prioritized before decorative polish.
+Read `20-v2-polish-overview.md`, then implement V2-A (`21-navigation-exit.md`) first. Board readability (`28`) and reference patterns (`29`) are now the core product focus. Center-board action stage is likely the key UX move before decorative polish.
 
 ## Last known deployed commit
 
