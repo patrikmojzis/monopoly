@@ -984,3 +984,34 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
   .game-mode-shell .classic-tile.side-right small { max-height: 48px; }
   .game-mode-shell .tokens .token-piece { width: 22px; height: 22px; font-size: 13px; }
 }
+
+/* V2-H correction: hybrid orientation. Keep board-edge physical cues, keep text readable. */
+.game-mode-shell .classic-tile.side-left strong,
+.game-mode-shell .classic-tile.side-left small,
+.game-mode-shell .classic-tile.side-right strong,
+.game-mode-shell .classic-tile.side-right small {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  align-self: stretch;
+  max-height: none;
+  max-width: 100%;
+}
+.game-mode-shell .classic-tile.side-top strong,
+.game-mode-shell .classic-tile.side-top small {
+  transform: none;
+  align-self: stretch;
+}
+.game-mode-shell .board-center-stage {
+  width: min(58%, 430px);
+  padding: clamp(10px, 1.55vw, 18px);
+  gap: 7px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(16, 12, 6, .58), rgba(30, 41, 59, .36));
+}
+.game-mode-shell .board-center-stage h2 { font-size: clamp(.98rem, 1.9vw, 1.55rem); }
+.game-mode-shell .stage-dice { font-size: clamp(1.8rem, 3.6vw, 3.4rem); }
+.game-mode-shell .stage-log { padding: 6px 8px; }
+.game-mode-shell .stage-log p { font-size: clamp(.62rem, .95vw, .76rem); }
+@media (max-width: 820px) {
+  .game-mode-shell .board-center-stage { width: 62%; padding: 10px; }
+}
