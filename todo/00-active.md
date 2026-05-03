@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/browser QA pending; Phase H deployed/smoke OK/mobile QA pending; Phase I visual polish implemented locally; tests/build passed; commit/deploy/QA next.
+Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/proposal-side browser QA passed; Phase H deployed/smoke OK/mobile QA pending; Phase I deployed/prod-smoked; visual QA pending.
 
 ## Rules for Clawd
 
@@ -28,11 +28,11 @@ Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/br
 
 ## Next action
 
-Commit/deploy Phase I and run visual QA for tabletop/physical-board feel plus readability. Then start Phase J: QA/replay (`12`).
+Wait for Phase H mobile QA and Phase I visual QA results. If green, run Phase J replay-ready checklist and create a fresh replay table/link; if not, patch issues first.
 
 ## Last known deployed commit
 
-- `c240772` — mobile game-mode polish: compact HUD, Me/Sel board centering, touch board affordance, bottom-sheet drawers.
+- `ee5cd58` — warm tabletop/physical-board art direction: paper tiles, wood board frame, tactile buttons/tokens; prod smoke OK.
 
 ## Current critique of deployed commit
 
