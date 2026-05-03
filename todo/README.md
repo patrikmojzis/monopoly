@@ -38,3 +38,16 @@ When a player opens the page, first impression should be:
 Not:
 
 > “I am using a web app that renders a board component.”
+
+
+## Game Mode v2 polish plan
+
+- `20-v2-polish-overview.md` — v2 goals, phase order, live feedback synthesis.
+- `21-navigation-exit.md` — exit-to-setup semantics and menu navigation cleanup.
+- `22-table-setup-seat-model.md` — explicit human/agent/NPC seat setup.
+- `23-token-figurines-and-picker.md` — token picker and figurine/chip rendering.
+- `24-fullscreen-board-comfort.md` — board focus and true fullscreen comfort.
+- `25-animation-system.md` — moving tokens, dice, money, cards, turn spotlight.
+- `26-sound-system.md` — optional sound layer.
+- `27-v2-qa-replay.md` — QA and replay-readiness checklist.
+- `28-board-readability-v2.md` — board readability/orientation: tile hierarchy, tokens, owner/building clarity, selected/landing state.
