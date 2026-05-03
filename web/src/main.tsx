@@ -138,9 +138,9 @@ function App() {
     <section className="status-card">
       <div><span className="label">Turn</span><strong>{emojiFor(state, state.turn)} {state.names[state.turn]}</strong></div>
       <div><span className="label">Phase</span><strong>{phaseLabel(state.phase)}</strong></div>
-      <div><span className="label">Last roll</span><strong>{state.lastRoll ? `${state.lastRoll[0]} + ${state.lastRoll[1]}` : "—"}</strong></div>
-      <div><span className="label">Doubles</span><strong>{state.doublesInRow || "—"}</strong></div>
-      <div><span className="label">Free Parking</span><strong>€{state.freeParkingPot}</strong></div>
+      <div><span className="label">Roll</span><strong>{state.lastRoll ? `${state.lastRoll[0]} + ${state.lastRoll[1]}` : "—"}</strong></div>
+      <div><span className="label">Dbl</span><strong>{state.doublesInRow || "—"}</strong></div>
+      <div><span className="label">Parking</span><strong>€{state.freeParkingPot}</strong></div>
       {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
     </section>
 
@@ -199,8 +199,8 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
       setCopied("Manual copy");
     }
   }
-  return <section className="card invites">
-    <div className="section-title"><h2>Invite links</h2>{copied && <span className="copied">Copied: {copied}</span>}</div>
+  return <details className="card invites invite-compact">
+    <summary><span>Invite links</span>{copied && <em>Copied: {copied}</em>}</summary>
     <p className="muted">Share browser links with humans. Agents use the same seat token as bearer auth.</p>
     <div className="invite-grid">
       {state.players.map((p) => <div key={p} className="invite-item">
@@ -210,7 +210,7 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
       </div>)}
       <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code><button className="copy-btn" onClick={() => copy("Spectator", created.spectatorUrl)}>Copy spectator</button></div>
     </div>
-  </section>;
+  </details>;
 }
 
 function BoardControls() {

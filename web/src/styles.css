@@ -440,3 +440,28 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .header-actions .lit { order: 3; }
   .dock-autobot { min-height: 44px; padding: 0 10px; font-size: .82rem; }
 }
+
+/* Iteration pass 18: mobile QA correction — stack coach, compact status, collapsed invites. */
+.invite-compact summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 900; font-size: 1.1rem; }
+.invite-compact summary::-webkit-details-marker { display: none; }
+.invite-compact summary::before { content: "🔗"; }
+.invite-compact summary em { color: #bbf7d0; font-style: normal; font-size: .85rem; }
+.invite-compact[open] summary { margin-bottom: 10px; }
+@media (min-width: 761px) {
+  .invite-compact { padding: 18px; }
+}
+@media (max-width: 760px) {
+  .invite-compact { padding: 10px 12px; margin-bottom: 10px; }
+  .invite-compact summary { font-size: .98rem; }
+  .status-card { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .status-card > div { padding: 9px 8px; min-width: 0; }
+  .status-card .label { font-size: .6rem; letter-spacing: .09em; white-space: nowrap; }
+  .status-card strong { font-size: .88rem; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-card > div:first-child { grid-column: span 2; }
+  .turn-assist { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
+  .turn-assist > div:first-child { min-width: 0; width: 100%; }
+  .turn-assist p { max-width: 100%; white-space: normal; }
+  .assist-actions { width: 100%; display: grid !important; grid-template-columns: 1fr; }
+  .assist-actions .action-btn, .assist-actions .ghost, .assist-actions .auto-pill { width: 100%; justify-content: center; }
+  .auction-stage .bot-button { width: 100%; }
+}
