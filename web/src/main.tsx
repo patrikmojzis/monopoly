@@ -143,6 +143,7 @@ function App() {
       {selectedSpace && <div className="floating-deed"><DeedCard state={state} space={selectedSpace} /></div>}
       <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
       <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
+      <GameEffects state={state} />
     </section>
 
     <GameActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} setOpenDrawer={setOpenDrawer} autoBots={autoBots} />
@@ -166,7 +167,7 @@ function GameHud({ state }: { state: GameState }) {
   return <section className="game-hud">
     <div className="hud-pill viewer"><span>{emojiFor(state, state.viewer)}</span><b>{state.names[state.viewer]}</b><strong>€{viewerInfo.cash}</strong></div>
     <div className="hud-pill turn"><span>{emojiFor(state, state.turn)}</span><b>{state.names[state.turn]}</b><strong>{phaseLabel(state.phase)}</strong></div>
-    <div className="hud-pill dice"><b>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b><strong>{state.lastRoll ? `${state.lastRoll[0]}+${state.lastRoll[1]}` : "roll"}</strong></div>
+    <div key={`dice-${state.version}-${state.lastRoll?.join("-") ?? "none"}`} className="hud-pill dice dice-pop"><b>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b><strong>{state.lastRoll ? `${state.lastRoll[0]}+${state.lastRoll[1]}` : "roll"}</strong></div>
     <div className="hud-pill pot"><b>🅿️</b><strong>€{state.freeParkingPot}</strong></div>
   </section>;
 }
@@ -217,6 +218,34 @@ function GameDrawer({ open, onClose, state, created, error, refresh, start, auto
       </div>}
     </aside>
   </div>;
+}
+
+function GameEffects({ state }: { state: GameState }) {
+  const latest = state.history[state.history.length - 1];
+  const message = String(latest?.message ?? "");
+  if (!message || state.phase === "finished") return null;
+  const kind = effectKind(message);
+  if (!kind) return null;
+  return <div key={`effect-${state.version}`} className={`game-effect game-effect-${kind}`}>
+    <span>{effectIcon(kind)}</span>
+    <strong>{message}</strong>
+  </div>;
+}
+
+function effectKind(message: string) {
+  const m = message.toLowerCase();
+  if (m.includes("nájom") || m.includes("platí") || m.includes("€")) return "payment";
+  if (m.includes("karta") || m.includes("chance") || m.includes("náhoda")) return "card";
+  if (m.includes("hodil") || m.includes("rolled")) return "dice";
+  if (m.includes("kúpil") || m.includes("bought")) return "buy";
+  if (m.includes("draž") || m.includes("bid")) return "auction";
+  if (m.includes("väzenia") || m.includes("jail")) return "jail";
+  if (m.includes("prišiel") || m.includes("landed")) return "landing";
+  return null;
+}
+
+function effectIcon(kind: string) {
+  return ({ payment: "💸", card: "🃏", dice: "🎲", buy: "🏷️", auction: "🔨", jail: "🚔", landing: "📍" } as Record<string, string>)[kind] ?? "✨";
 }
 
 function drawerTitle(open: DrawerName) {

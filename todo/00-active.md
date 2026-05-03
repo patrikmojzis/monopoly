@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B deployed; Phase C deployed; Phase D/E deed/seats first pass implemented locally; build/tests passed; commit/deploy/QA next.
+Status: Phase A+B/C/D/E deployed; Phase F animation first pass implemented locally; build/tests passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -20,7 +20,7 @@ Status: Phase A+B deployed; Phase C deployed; Phase D/E deed/seats first pass im
 - [x] Phase C: board readability (`04`) — first pass: bigger owner pennants, owner borders, building stacks, mortgage stamp, larger tokens
 - [x] Phase D: player seats + board space (`05`) — first pass: seat cards pulse/turn labeling, no permanent player sidebar
 - [x] Phase E: deed hand/cards (`06`) — first pass: grouped physical deed cards, card click selects board tile
-- [ ] Phase F: animations/game feel (`08`)
+- [x] Phase F: animations/game feel (`08`) — first pass: event toast overlays, dice HUD pop, selected tile ring, city breathe, auction/debt/build/mortgage motion
 - [ ] Phase G: real trades (`07`)
 - [ ] Phase H: mobile game mode (`09`)
 - [ ] Phase I: visual art polish (`10`)
@@ -28,11 +28,11 @@ Status: Phase A+B deployed; Phase C deployed; Phase D/E deed/seats first pass im
 
 ## Next action
 
-Commit/deploy Phase D/E and run visual QA on card drawer + selected deed flow. Then start Phase F: animations/game feel (`08`).
+Commit/deploy Phase F and run visual QA on roll/buy/card/rent event feedback. Then start Phase G: real trades (`07`).
 
 ## Last known deployed commit
 
-- `bdf6af4` — board ownership readability: larger owner markers, building stack, mortgage stamp.
+- `3bf8e97` — physical deed cards, grouped deed hand, seat-card polish.
 
 ## Current critique of deployed commit
 
