@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B deployed; Phase C board-readability first pass implemented locally; build/tests passed; commit/deploy/QA next.
+Status: Phase A+B deployed; Phase C deployed; Phase D/E deed/seats first pass implemented locally; build/tests passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -18,8 +18,8 @@ Status: Phase A+B deployed; Phase C board-readability first pass implemented loc
 - [x] Phase A: fullscreen shell + compact HUD (`01`, `02`) — implemented in local game-mode pass
 - [x] Phase B: bot controls cleanup (`03`) — Clawd/real-player buttons hidden; NPC autoplay moved to menu
 - [x] Phase C: board readability (`04`) — first pass: bigger owner pennants, owner borders, building stacks, mortgage stamp, larger tokens
-- [ ] Phase D: player seats + board space (`05`)
-- [ ] Phase E: deed hand/cards (`06`)
+- [x] Phase D: player seats + board space (`05`) — first pass: seat cards pulse/turn labeling, no permanent player sidebar
+- [x] Phase E: deed hand/cards (`06`) — first pass: grouped physical deed cards, card click selects board tile
 - [ ] Phase F: animations/game feel (`08`)
 - [ ] Phase G: real trades (`07`)
 - [ ] Phase H: mobile game mode (`09`)
@@ -28,11 +28,11 @@ Status: Phase A+B deployed; Phase C board-readability first pass implemented loc
 
 ## Next action
 
-Commit/deploy Phase C and run visual QA on owned-property midgame states. Then start Phase D/E: player seats + deed hand polish (`05`, `06`).
+Commit/deploy Phase D/E and run visual QA on card drawer + selected deed flow. Then start Phase F: animations/game feel (`08`).
 
 ## Last known deployed commit
 
-- `a3d62b9` — fullscreen game-mode shell, compact HUD, drawers, bot-control cleanup.
+- `bdf6af4` — board ownership readability: larger owner markers, building stack, mortgage stamp.
 
 ## Current critique of deployed commit
 

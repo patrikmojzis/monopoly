@@ -146,7 +146,7 @@ function App() {
     </section>
 
     <GameActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} setOpenDrawer={setOpenDrawer} autoBots={autoBots} />
-    <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} act={act} busy={busy} />
+    <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} selectedSpaceId={selectedSpaceId} setSelectedSpaceId={setSelectedSpaceId} act={act} busy={busy} />
   </main>;
 }
 function GameTopChrome({ state, busy, refresh, start, setOpenDrawer }: { state: GameState; busy: boolean; refresh: () => void; start: () => void; setOpenDrawer: (drawer: DrawerName | null) => void }) {
@@ -193,12 +193,12 @@ function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBo
   </section>;
 }
 
-function GameDrawer({ open, onClose, state, created, error, refresh, start, autoBots, setAutoBots, hasNpcSeats, setOpenDrawer, act, busy }: { open: DrawerName | null; onClose: () => void; state: GameState; created: CreateGameResponse | null; error: string | null; refresh: () => void; start: () => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean; setOpenDrawer: (drawer: DrawerName | null) => void; act: (a: GameAction) => void; busy: boolean }) {
+function GameDrawer({ open, onClose, state, created, error, refresh, start, autoBots, setAutoBots, hasNpcSeats, setOpenDrawer, selectedSpaceId, setSelectedSpaceId, act, busy }: { open: DrawerName | null; onClose: () => void; state: GameState; created: CreateGameResponse | null; error: string | null; refresh: () => void; start: () => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean; setOpenDrawer: (drawer: DrawerName | null) => void; selectedSpaceId: number | null; setSelectedSpaceId: (id: number) => void; act: (a: GameAction) => void; busy: boolean }) {
   if (!open) return null;
   return <div className="drawer-backdrop" onClick={onClose}>
     <aside className={`game-drawer drawer-${open}`} onClick={(e) => e.stopPropagation()}>
       <div className="drawer-title"><h2>{drawerTitle(open)}</h2><button className="ghost" onClick={onClose}>✕</button></div>
-      {open === "cards" && <DeedHand state={state} />}
+      {open === "cards" && <DeedHand state={state} selectedId={selectedSpaceId} onSelect={(id) => { setSelectedSpaceId(id); onClose(); }} />}
       {open === "log" && <section className="history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 24).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>}
       {open === "players" && <div className="drawer-stack">{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</div>}
       {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
@@ -252,22 +252,35 @@ function SeatRail({ state }: { state: GameState }) {
   </section>;
 }
 
-function DeedHand({ state }: { state: GameState }) {
+function DeedHand({ state, selectedId, onSelect }: { state: GameState; selectedId?: number | null; onSelect?: (id: number) => void }) {
   const owned = Object.entries(state.owners).filter(([, owner]) => owner === state.viewer).map(([id]) => state.board[Number(id)]);
+  const byColor = owned.reduce<Record<string, Space[]>>((acc, space) => {
+    const key = space.color ?? space.kind;
+    (acc[key] ??= []).push(space);
+    return acc;
+  }, {});
   return <section className="card deed-hand">
     <div className="section-title"><h2>Your deed cards</h2><span>{owned.length}</span></div>
-    <div className="deed-hand-grid">
-      {owned.length ? owned.map((space) => {
-        const buildings = state.buildings[String(space.id)] ?? 0;
-        const mortgaged = !!state.mortgaged[String(space.id)];
-        return <article key={space.id} className={`mini-deed ${mortgaged ? "mortgaged" : ""}`}>
-          <b style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "#94a3b8" }} />
-          <strong>{space.name}</strong>
-          <small>{mortgaged ? "mortgaged · rent €0" : `rent €${space.currentRent || space.rent || "dice"}`}</small>
-          {buildings > 0 && <em>{buildings === 5 ? "🏨 hotel" : "🏠".repeat(buildings)}</em>}
-        </article>;
-      }) : <p className="muted">No deeds yet. Kapitalizmus ešte len bootuje.</p>}
-    </div>
+    {owned.length ? <div className="deed-color-groups">
+      {Object.entries(byColor).map(([group, spaces]) => <div key={group} className="deed-group">
+        <div className="deed-group-label"><b style={{ background: COLOR[group] ?? "#94a3b8" }} /><span>{group.replace(/-/g, " ")}</span><em>{spaces.length}</em></div>
+        <div className="deed-hand-grid">
+          {spaces.map((space) => {
+            const buildings = state.buildings[String(space.id)] ?? 0;
+            const mortgaged = !!state.mortgaged[String(space.id)];
+            const selected = selectedId === space.id;
+            const CardTag = onSelect ? "button" : "article";
+            return <CardTag key={space.id} type={onSelect ? "button" : undefined} onClick={onSelect ? () => onSelect(space.id) : undefined} className={`mini-deed ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""}`}>
+              <b style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "#94a3b8" }} />
+              <strong>{space.name}</strong>
+              <small>{mortgaged ? "mortgaged · rent €0" : `rent €${space.currentRent || space.rent || "dice"}`}</small>
+              <i>#{space.id} · {space.kind.replace(/_/g, " ")}</i>
+              {buildings > 0 && <em>{buildings === 5 ? "🏨 hotel" : `🏠×${buildings}`}</em>}
+            </CardTag>;
+          })}
+        </div>
+      </div>)}
+    </div> : <p className="muted">No deeds yet. Kapitalizmus ešte len bootuje.</p>}
   </section>;
 }
 

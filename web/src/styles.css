@@ -669,3 +669,28 @@ body.game-mode-active #root { height: 100dvh; overflow: hidden; }
   .building-stack { font-size: .68rem; }
   .game-mode-shell .tokens span { width: 19px; height: 19px; }
 }
+
+/* Phase D/E first pass: seats and deed hand should feel like physical game pieces/cards. */
+.game-board-stage .seat-card { grid-template-columns: auto minmax(0,1fr) auto auto; }
+.game-board-stage .seat-card b::before { content: "cash "; color: #94a3b8; font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; }
+.seat-card.active .seat-token { animation: seatTokenPulse 1.3s ease-in-out infinite; }
+.seat-card.active::after { content: "TURN"; position: absolute; left: 8px; bottom: 4px; color: #fde68a; font-size: .52rem; font-weight: 1000; letter-spacing: .12em; }
+.deed-color-groups { display: grid; gap: 12px; }
+.deed-group { display: grid; gap: 7px; }
+.deed-group-label { display: flex; align-items: center; gap: 7px; color: #334155; font-weight: 1000; text-transform: uppercase; letter-spacing: .06em; font-size: .72rem; }
+.deed-group-label b { width: 26px; height: 12px; border-radius: 99px; border: 1px solid rgba(24,32,43,.20); }
+.deed-group-label em { margin-left: auto; font-style: normal; color: #64748b; }
+.mini-deed { appearance: none; text-align: left; font: inherit; cursor: pointer; transform-origin: center bottom; transition: transform .16s ease, box-shadow .16s ease, filter .16s ease; }
+button.mini-deed:hover { transform: translateY(-4px) rotate(-1deg); box-shadow: 0 16px 30px rgba(24,32,43,.20); }
+.mini-deed.selected { outline: 3px solid rgba(250,204,21,.95); outline-offset: -3px; transform: translateY(-3px); }
+.mini-deed i { color: #64748b; font-style: normal; font-size: .66rem; }
+.game-drawer.drawer-cards { width: min(720px, calc(100vw - 22px)); }
+.game-drawer.drawer-cards .deed-hand-grid { grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); max-height: none; overflow: visible; }
+.game-drawer.drawer-cards .mini-deed { min-height: 128px; padding: 20px 10px 10px; }
+.game-drawer.drawer-cards .mini-deed strong { font-family: Georgia, "Times New Roman", serif; font-size: .98rem; }
+@keyframes seatTokenPulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250,204,21,.0); } 50% { transform: scale(1.1); box-shadow: 0 0 0 7px rgba(250,204,21,.10); } }
+@media (max-width: 760px) {
+  .game-board-stage .seat-card { grid-template-columns: auto minmax(0,1fr) auto; }
+  .game-board-stage .seat-card b::before { content: ""; }
+  .game-drawer.drawer-cards .deed-hand-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
