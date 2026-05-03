@@ -548,18 +548,50 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   const buildings = state.buildings[String(space.id)] ?? 0;
   const mortgaged = !!state.mortgaged[String(space.id)];
-  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
+  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""} ${owner ? `owned owned-${owner} ${boardSideClass(space.id)}` : ""} ${buildings > 0 ? "has-buildings" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span><span className="tile-kind-icon">{spaceIcon(space.kind)}</span>
-    <strong title={space.name}>{space.name}</strong>
+    <strong title={space.name}>{shortTileName(space.name)}</strong>
     {space.price > 0 && <small>€{space.price} · {mortgaged ? "mortgaged" : `rent €${space.currentRent || space.rent || "dice"}`}</small>}
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
     {mortgaged && <small className="mortgage-badge">MORTGAGED</small>}
-    {owner && <em className={`owner-flag owner-${owner}`}>{emojiFor(state, owner)} {state.names[owner]}</em>}
+    {owner && <em className={`owner-flag owner-${owner}`}><span>{emojiFor(state, owner)}</span><b>{playerInitials(state.names[owner])}</b></em>}
+    {owner && <span className={`owner-pennant owner-${owner}`} title={`Owned by ${state.names[owner]}`}>{playerInitials(state.names[owner])}</span>}
     {owner && <span className={`owner-edge owner-${owner}`} />}
-    {buildings > 0 && <span className="building-stack">{buildings === 5 ? "🏨" : Array.from({length: buildings}, (_, i) => <b key={i}>🏠</b>)}</span>}
+    {buildings > 0 && <BuildingStack count={buildings} />}
+    {mortgaged && <span className="mortgage-stamp">M</span>}
     <div className="tokens">{occupants.map((p) => <span key={p}>{emojiFor(state, p)}</span>)}</div>
   </button>;
+}
+
+function BuildingStack({ count }: { count: number }) {
+  if (count >= 5) return <span className="building-stack hotel"><b>🏨</b></span>;
+  return <span className="building-stack houses">{Array.from({ length: count }, (_, i) => <b key={i}>🏠</b>)}</span>;
+}
+
+function boardSideClass(id: number) {
+  if (id <= 10) return "side-bottom";
+  if (id <= 20) return "side-left";
+  if (id <= 30) return "side-top";
+  return "side-right";
+}
+
+function playerInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return (parts.length > 1 ? parts.map((p) => p[0]).join("") : name.slice(0, 2)).toUpperCase();
+}
+
+function shortTileName(name: string) {
+  return name
+    .replace("Bratislavská", "BA")
+    .replace("Povraznícka", "Povr.")
+    .replace("železnica", "Rail")
+    .replace("agentov", "agent.")
+    .replace("bugfixová", "bugfix")
+    .replace("radiála", "rad.")
+    .replace("nábreežie", "nábr.")
+    .replace("nábrežie", "nábr.")
+    .replace("vodáreň", "vod.");
 }
 
 function DeedCard({ state, space }: { state: GameState; space: Space }) {

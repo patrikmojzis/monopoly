@@ -641,3 +641,31 @@ body.game-mode-active #root { height: 100dvh; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .tokens span, .dice-face span, .tile.selected { animation: none !important; }
 }
+
+/* Phase C first pass: board readability — ownership/building/mortgage state visible without sidebars. */
+.tile.owned { border-width: 2px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.60), 0 8px 18px rgba(0,0,0,.18); }
+.tile.owned-p1 { border-color: #facc15; }
+.tile.owned-p2 { border-color: #60a5fa; }
+.tile.owned-p3 { border-color: #c084fc; }
+.tile.owned-p4 { border-color: #fb7185; }
+.owner-pennant { position: absolute; z-index: 7; display: grid; place-items: center; min-width: 30px; height: 20px; padding: 0 6px; color: #101827; font-size: .58rem; font-weight: 1000; letter-spacing: .04em; border-radius: 6px; border: 1px solid rgba(255,255,255,.38); box-shadow: 0 7px 16px rgba(0,0,0,.25); }
+.side-bottom .owner-pennant { left: 50%; bottom: -8px; transform: translateX(-50%); }
+.side-top .owner-pennant { left: 50%; top: -8px; transform: translateX(-50%); }
+.side-left .owner-pennant { left: -9px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+.side-right .owner-pennant { right: -9px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+.owner-flag { z-index: 6; display: inline-flex; gap: 2px; align-items: center; justify-content: center; min-width: 30px; height: 18px; font-weight: 1000; }
+.owner-flag b { font-size: .52rem; }
+.owner-edge { height: 10px; z-index: 5; }
+.building-stack { z-index: 8; position: absolute; left: 4px; top: 16px; display: flex; gap: 1px; align-items: center; padding: 1px 3px; border-radius: 999px; background: rgba(255,255,255,.72); border: 1px solid rgba(24,32,43,.18); font-size: .72rem; line-height: 1; filter: drop-shadow(0 3px 4px rgba(0,0,0,.22)); }
+.building-stack.hotel { background: rgba(251,191,36,.82); font-size: .86rem; }
+.mortgage-stamp { position: absolute; z-index: 9; inset: 30% 6px auto; transform: rotate(-17deg); display: grid; place-items: center; height: 20px; border-radius: 6px; background: rgba(15,23,42,.78); color: #fca5a5; border: 1px solid rgba(248,113,113,.55); font-weight: 1000; font-size: .78rem; letter-spacing: .18em; }
+.tile.mortgaged { filter: grayscale(.82) brightness(.86); }
+.tile.mortgaged .owner-pennant, .tile.mortgaged .owner-edge { opacity: .55; }
+.game-mode-shell .tokens { right: 4px; bottom: 21px; min-height: 24px; padding: 2px 5px; border-radius: 999px; background: rgba(15,23,42,.72); color: #fff; border-color: rgba(255,255,255,.28); }
+.game-mode-shell .tokens span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.88); box-shadow: 0 4px 10px rgba(0,0,0,.25); }
+.game-mode-shell .tile.selected .tokens span, .game-mode-shell .tile:hover .tokens span { transform: scale(1.08); }
+@media (max-width: 760px) {
+  .owner-pennant { min-width: 28px; height: 19px; font-size: .54rem; }
+  .building-stack { font-size: .68rem; }
+  .game-mode-shell .tokens span { width: 19px; height: 19px; }
+}

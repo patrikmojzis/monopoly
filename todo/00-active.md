@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B implemented locally; build/tests passed; commit/deploy/QA next.
+Status: Phase A+B deployed; Phase C board-readability first pass implemented locally; build/tests passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -17,7 +17,7 @@ Status: Phase A+B implemented locally; build/tests passed; commit/deploy/QA next
 
 - [x] Phase A: fullscreen shell + compact HUD (`01`, `02`) — implemented in local game-mode pass
 - [x] Phase B: bot controls cleanup (`03`) — Clawd/real-player buttons hidden; NPC autoplay moved to menu
-- [ ] Phase C: board readability (`04`)
+- [x] Phase C: board readability (`04`) — first pass: bigger owner pennants, owner borders, building stacks, mortgage stamp, larger tokens
 - [ ] Phase D: player seats + board space (`05`)
 - [ ] Phase E: deed hand/cards (`06`)
 - [ ] Phase F: animations/game feel (`08`)
@@ -28,11 +28,11 @@ Status: Phase A+B implemented locally; build/tests passed; commit/deploy/QA next
 
 ## Next action
 
-Commit and deploy Phase A+B, run production smoke + browser visual QA. Then start Phase C: board readability (`04`).
+Commit/deploy Phase C and run visual QA on owned-property midgame states. Then start Phase D/E: player seats + deed hand polish (`05`, `06`).
 
 ## Last known deployed commit
 
-- `04674a1` — first board-first pass with city art, seat cards, deed hand, ownership flags.
+- `a3d62b9` — fullscreen game-mode shell, compact HUD, drawers, bot-control cleanup.
 
 ## Current critique of deployed commit
 
