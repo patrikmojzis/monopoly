@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed and API-smoked/browser QA pending; Phase H mobile polish implemented locally; tests/build passed; commit/deploy/QA next.
+Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/browser QA pending; Phase H deployed/smoke OK/mobile QA pending; Phase I visual polish implemented locally; tests/build passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -23,16 +23,16 @@ Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed and API-smoke
 - [x] Phase F: animations/game feel (`08`) — first pass: event toast overlays, dice HUD pop, selected tile ring, city breathe, auction/debt/build/mortgage motion
 - [x] Phase G: real trades (`07`) — first pass: pending trade proposals, accept/reject/cancel, stale validation, UI pending trade panel
 - [x] Phase H: mobile game mode (`09`) — first pass: compact phone HUD, touch board affordance, Me/Sel center controls, bottom-sheet drawers, mobile deed/dock sizing
-- [ ] Phase I: visual art polish (`10`)
+- [x] Phase I: visual art polish (`10`) — first pass: warm tabletop background, paper tiles, wood board frame, tactile buttons/tokens, physical card tone
 - [ ] Phase J: QA/replay (`12`)
 
 ## Next action
 
-Commit/deploy Phase H and run narrow/mobile browser QA. Then start Phase I: visual art direction polish (`10`).
+Commit/deploy Phase I and run visual QA for tabletop/physical-board feel plus readability. Then start Phase J: QA/replay (`12`).
 
 ## Last known deployed commit
 
-- `96ffab9` — real trade proposals: propose/accept/reject/cancel, pending trade state, stale validation, UI pending panel.
+- `c240772` — mobile game-mode polish: compact HUD, Me/Sel board centering, touch board affordance, bottom-sheet drawers.
 
 ## Current critique of deployed commit
 
