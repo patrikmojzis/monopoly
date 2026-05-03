@@ -151,7 +151,22 @@ function App() {
     </section>
 
     <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
+    <MobileActionDock state={state} legal={legal} busy={busy} act={act} runBot={runBot} />
   </main>;
+}
+
+function MobileActionDock({ state, legal, busy, act, runBot }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void }) {
+  if (state.phase === "finished") return null;
+  const latest = state.history[state.history.length - 1]?.message;
+  const viewerTurn = state.turn === state.viewer && state.canAct;
+  return <div className={`mobile-action-dock ${viewerTurn ? "active" : "waiting"}`}>
+    <div className="dock-summary"><strong>{viewerTurn ? "Tvoj ťah" : `${state.names[state.turn]} hrá`}</strong><span>{latest ?? "Čakáme na hod."}</span></div>
+    <div className="dock-buttons">
+      {viewerTurn && legal.slice(0, 2).map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>)}
+      {!viewerTurn && state.turn !== state.viewer && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Bot turn</button>}
+      <button className="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>↑ Top</button>
+    </div>
+  </div>;
 }
 
 function InvitePanel({ created, state }: { created: CreateGameResponse; state: GameState }) {
