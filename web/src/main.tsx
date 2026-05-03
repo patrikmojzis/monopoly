@@ -135,6 +135,7 @@ function App() {
     </section>
 
     <TurnBanner state={state} />
+    <TablePulse state={state} />
     <CurrentSpot state={state} />
 
     <section className="layout classic-layout">
@@ -191,6 +192,18 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
       </div>)}
       <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code><button className="copy-btn" onClick={() => copy("Spectator", created.spectatorUrl)}>Copy spectator</button></div>
     </div>
+  </section>;
+}
+
+function TablePulse({ state }: { state: GameState }) {
+  const ranked = [...state.players].sort((a, b) => state.playerState[b].netWorth - state.playerState[a].netWorth);
+  const leader = ranked[0];
+  const bankOwned = state.board.filter((s) => s.isBuyable && !state.owners[String(s.id)]).length;
+  const owned = Object.keys(state.owners).length;
+  return <section className="card table-pulse">
+    <div><span className="label">Leader</span><strong>{emojiFor(state, leader)} {state.names[leader]} · €{state.playerState[leader].netWorth}</strong></div>
+    <div><span className="label">Market</span><strong>{owned} owned · {bankOwned} free</strong></div>
+    <div><span className="label">Round vibe</span><strong>{state.history.length < 10 ? "opening chaos" : owned < 12 ? "land grab" : "rent war"}</strong></div>
   </section>;
 }
 
@@ -318,7 +331,8 @@ function PlayerPanel({ state, player }: { state: GameState; player: Player }) {
   return <div className={`card player ${!info.active ? "inactive" : ""}`}>
     <h2>{emojiFor(state, player)} {state.names[player]}</h2>
     <div className="money">€{info.cash}</div>
-    <p>Net worth: €{info.netWorth}</p>
+    <div className="wealth-bar"><i style={{ width: `${Math.min(100, Math.max(4, info.netWorth / 30))}%` }} /></div>
+    <p>Net worth: €{info.netWorth} · Properties: {owned.length}</p>
     <p>Position: {state.board[info.position].name}</p>
     {info.jailTurns > 0 && <p>🚔 Jail turns: {info.jailTurns}</p>}
     {info.jailCards > 0 && <p>🎟️ Rate-limit passes: {info.jailCards}</p>}

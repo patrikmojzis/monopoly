@@ -266,3 +266,15 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .dock-buttons button { min-height: 46px; padding: 9px 10px; border-radius: 13px; }
   aside .actions { display: none; }
 }
+
+/* Iteration pass 5: table pulse + richer player cards. */
+.table-pulse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; padding: 12px; }
+.table-pulse div { display: grid; gap: 3px; padding: 10px; border-radius: 14px; background: rgba(15,23,42,.38); border: 1px solid rgba(255,255,255,.07); }
+.table-pulse strong { color: #fef3c7; }
+.wealth-bar { height: 8px; border-radius: 999px; overflow: hidden; background: rgba(15,23,42,.65); border: 1px solid rgba(255,255,255,.08); margin: 5px 0 8px; }
+.wealth-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #facc15); box-shadow: 0 0 18px rgba(250,204,21,.25); }
+.player.inactive .wealth-bar i { background: #64748b; }
+@media (max-width: 760px) {
+  .table-pulse { grid-template-columns: 1fr; gap: 7px; }
+  .table-pulse div { padding: 8px 10px; }
+}
