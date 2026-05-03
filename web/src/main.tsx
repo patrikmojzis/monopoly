@@ -211,22 +211,21 @@ function GameDrawer({ open, onClose, state, created, error, refresh, start, auto
   if (!open) return null;
   return <div className="drawer-backdrop" onClick={onClose}>
     <aside className={`game-drawer drawer-${open}`} onClick={(e) => e.stopPropagation()}>
-      <div className="drawer-title"><h2>{drawerTitle(open)}</h2><button className="ghost" onClick={onClose}>✕</button></div>
+      <div className="drawer-title"><h2>{drawerTitle(open)}</h2><button className="drawer-close" onClick={onClose} aria-label="Close drawer">✕</button></div>
       {open === "cards" && <DeedHand state={state} selectedId={selectedSpaceId} onSelect={(id) => { setSelectedSpaceId(id); onClose(); }} />}
       {open === "log" && <section className="history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 24).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>}
       {open === "players" && <div className="drawer-stack">{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</div>}
       {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
       {open === "trade" && <div className="drawer-stack"><PendingTrade state={state} act={act} busy={busy} /><TradeDesk state={state} act={act} busy={busy} /></div>}
-      {open === "menu" && <div className="drawer-stack menu-grid">
-        <button onClick={refresh} disabled={busy}>Refresh state</button>
-        <button onClick={start} disabled={busy}>New table</button>
-        <button onClick={() => onClose()}>Back to board</button>
-        <button className="ghost" onClick={() => { onClose(); setTimeout(() => document.querySelector('.board-scroll')?.scrollTo({ left: 9999, top: 9999, behavior: 'smooth' }), 30); }}>Center-ish board</button>
-        <button className="ghost" onClick={() => onClose()}>Settings soon</button>
+      {open === "menu" && <div className="drawer-stack menu-grid menu-panel">
+        <button className="menu-primary" onClick={onClose}>↩ Exit menu / back to board</button>
+        <button onClick={refresh} disabled={busy}>↻ Refresh state</button>
+        <button className="ghost" onClick={() => { onClose(); setTimeout(() => document.querySelector('.board-scroll')?.scrollTo({ left: 9999, top: 9999, behavior: 'smooth' }), 30); }}>◇ Center board</button>
+        <button className="ghost" onClick={() => setOpenDrawer("rules")}>📜 Rules</button>
         {hasNpcSeats && <label className="toggle-row"><input type="checkbox" checked={autoBots} onChange={(e) => setAutoBots(e.target.checked)} /> Auto-play NPCs</label>}
-        {!hasNpcSeats && <p className="muted">No NPC seats here. Clawd/real players act from their own seat/API — no confusing bot button.</p>}
-        <button className="ghost" onClick={() => setOpenDrawer("rules")}>Rules</button>
+        {!hasNpcSeats && <p className="muted menu-note">No NPC seats here. Clawd/real players act from their own seat/API — no confusing bot button.</p>}
         {created && <InvitePanel created={created} state={state} />}
+        <button className="ghost danger-ish" onClick={start} disabled={busy}>＋ New table</button>
         {error && <p className="error">{error}</p>}
       </div>}
     </aside>
