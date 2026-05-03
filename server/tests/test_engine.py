@@ -91,16 +91,55 @@ def test_mortgage_unmortgage_disables_rent():
     assert rent_for(state, BOARD[5]) == 25
 
 
-def test_trade_transfers_cash_and_properties():
+def test_trade_proposal_accept_transfers_cash_and_properties():
     state = initial_state('g')
     state.owners[5] = 'p1'
     state.owners[6] = 'p2'
     state.phase = 'end'
-    apply_action(state, 'p1', {'type': 'trade', 'toPlayer': 'p2', 'cashFrom': 50, 'cashTo': 20, 'propertiesFrom': [5], 'propertiesTo': [6]})
+    apply_action(state, 'p1', {'type': 'propose_trade', 'toPlayer': 'p2', 'cashFrom': 50, 'cashTo': 20, 'propertiesFrom': [5], 'propertiesTo': [6]})
+    assert state.pending_trade is not None
+    assert legal_actions(state, 'p2')[-1]['type'] == 'accept_trade'
+    apply_action(state, 'p2', {'type': 'accept_trade'})
+    assert state.pending_trade is None
     assert state.owners[5] == 'p2'
     assert state.owners[6] == 'p1'
     assert state.player_state['p1'].cash == 1470
     assert state.player_state['p2'].cash == 1530
+
+
+def test_trade_proposal_reject_and_cancel():
+    state = initial_state('g')
+    state.owners[5] = 'p1'
+    state.phase = 'end'
+    apply_action(state, 'p1', {'type': 'propose_trade', 'toPlayer': 'p2', 'cashFrom': 0, 'cashTo': 100, 'propertiesFrom': [5]})
+    apply_action(state, 'p2', {'type': 'reject_trade'})
+    assert state.pending_trade is None
+    assert state.owners[5] == 'p1'
+    apply_action(state, 'p1', {'type': 'propose_trade', 'toPlayer': 'p2', 'cashFrom': 0, 'cashTo': 100, 'propertiesFrom': [5]})
+    apply_action(state, 'p1', {'type': 'cancel_trade'})
+    assert state.pending_trade is None
+    assert state.owners[5] == 'p1'
+
+
+def test_trade_accept_revalidates_stale_or_improved_properties():
+    state = initial_state('g')
+    state.owners[1] = 'p1'
+    state.owners[3] = 'p1'
+    state.owners[6] = 'p2'
+    state.phase = 'end'
+    apply_action(state, 'p1', {'type': 'propose_trade', 'toPlayer': 'p2', 'propertiesFrom': [1], 'propertiesTo': [6]})
+    state.owners[1] = 'p2'
+    with pytest.raises(IllegalAction):
+        apply_action(state, 'p2', {'type': 'accept_trade'})
+
+    state = initial_state('g')
+    state.owners[1] = 'p1'
+    state.owners[3] = 'p1'
+    state.owners[6] = 'p2'
+    state.phase = 'end'
+    state.buildings[3] = 1
+    with pytest.raises(IllegalAction):
+        apply_action(state, 'p1', {'type': 'propose_trade', 'toPlayer': 'p2', 'propertiesFrom': [1], 'propertiesTo': [6]})
 
 
 

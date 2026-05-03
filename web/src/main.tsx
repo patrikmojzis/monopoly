@@ -105,7 +105,7 @@ function App() {
   }, [autoBots, busy, state?.turn, state?.phase, state?.version]);
 
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
-  const buttonActions = legal.filter((a) => a.type !== "trade");
+  const buttonActions = legal.filter((a) => a.type !== "propose_trade");
   const selectedSpace = state ? state.board[selectedSpaceId ?? state.pendingSpace ?? state.playerState[state.turn].position] : null;
   const hasNpcSeats = state ? state.players.some((p) => isNpcSeat(state, p)) : false;
 
@@ -174,7 +174,7 @@ function GameHud({ state }: { state: GameState }) {
 
 function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; autoBots: boolean }) {
   const viewerTurn = state.turn === state.viewer && state.canAct;
-  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "trade"].includes(a.type)).slice(0, 3);
+  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "propose_trade"].includes(a.type)).slice(0, 3);
   const latest = state.history[state.history.length - 1]?.message;
   const waitingNpc = !viewerTurn && state.turn !== state.viewer && isNpcSeat(state, state.turn);
   return <section className={`game-action-dock ${viewerTurn ? "active" : "waiting"}`}>
@@ -203,7 +203,7 @@ function GameDrawer({ open, onClose, state, created, error, refresh, start, auto
       {open === "log" && <section className="history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 24).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>}
       {open === "players" && <div className="drawer-stack">{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</div>}
       {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
-      {open === "trade" && <div className="drawer-stack"><TradeDesk state={state} act={act} busy={busy} /><p className="muted">Real proposal trades are next TODO. Current mode is still table-trust transfer until Phase G.</p></div>}
+      {open === "trade" && <div className="drawer-stack"><PendingTrade state={state} act={act} busy={busy} /><TradeDesk state={state} act={act} busy={busy} /></div>}
       {open === "menu" && <div className="drawer-stack menu-grid">
         <button onClick={refresh} disabled={busy}>Refresh state</button>
         <button onClick={start} disabled={busy}>New table</button>
@@ -317,7 +317,7 @@ function MobileActionDock({ state, legal, busy, act, runBot, autoBots }: { state
   if (state.phase === "finished") return null;
   const latest = state.history[state.history.length - 1]?.message;
   const viewerTurn = state.turn === state.viewer && state.canAct;
-  const primary = (state.phase === "debt" ? legal : legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "trade"].includes(a.type))).slice(0, 2);
+  const primary = (state.phase === "debt" ? legal : legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "propose_trade"].includes(a.type))).slice(0, 2);
   return <div className={`mobile-action-dock ${viewerTurn ? "active" : "waiting"}`}>
     <div className="dock-summary"><strong>{viewerTurn ? "Tvoj ťah" : `${state.names[state.turn]} hrá`}</strong><span>{latest ?? "Čakáme na hod."}</span></div>
     <div className="dock-buttons">
@@ -380,7 +380,7 @@ function RulesCard() {
       <li>Doubles = ideš ešte raz; tri doubles = väzenie, klasika cursed.</li>
       <li>Ak hráč nekúpi property, ide dražba medzi aktívnymi hráčmi.</li>
       <li>Majetok vieš založiť/odkúpiť späť; založený majetok neberie nájom.</li>
-      <li>Trade desk umožní cash/property transfery bez budov na skupine.</li>
+      <li>Trade funguje cez návrh → accept/reject; farebné skupiny s budovami sú locknuté.</li>
       <li>Ak padneš do mínusu, príde debt phase: mortgage/sell/trade alebo bankrot.</li>
       <li>Tax/jail/card poplatky idú do Free Parking potu; kto tam pristane, berie bank.</li>
       <li>Na mobile používaj spodný action dock a pan buttons pri doske.</li>
@@ -448,8 +448,33 @@ function DebtBanner({ state, legal, busy, act }: { state: GameState; legal: (Gam
   </section>;
 }
 
+function PendingTrade({ state, act, busy }: { state: GameState; act: (a: GameAction) => void; busy: boolean }) {
+  const trade = state.pendingTrade;
+  if (!trade) return null;
+  const from = trade.from_player ?? trade.fromPlayer!;
+  const to = trade.to_player ?? trade.toPlayer!;
+  const cashFrom = trade.cash_from ?? trade.cashFrom ?? 0;
+  const cashTo = trade.cash_to ?? trade.cashTo ?? 0;
+  const propsFrom = trade.properties_from ?? trade.propertiesFrom ?? [];
+  const propsTo = trade.properties_to ?? trade.propertiesTo ?? [];
+  const propertyList = (ids: number[]) => ids.length ? ids.map((id) => state.board[id]?.name ?? `#${id}`).join(" · ") : "nič";
+  const iAmRecipient = state.viewer === to;
+  const iAmProposer = state.viewer === from;
+  return <section className="pending-trade card">
+    <p className="label">Pending trade</p>
+    <h3>{state.names[from]} ⇄ {state.names[to]}</h3>
+    <div className="pending-trade-grid">
+      <div><b>{state.names[from]} gives</b><span>{propertyList(propsFrom)} + €{cashFrom}</span></div>
+      <div><b>{state.names[to]} gives</b><span>{propertyList(propsTo)} + €{cashTo}</span></div>
+    </div>
+    {iAmRecipient && <div className="trade-response-actions"><button className="action-btn action-accept_trade" disabled={busy} onClick={() => act({ type: "accept_trade" })}>✅ Accept trade</button><button className="ghost" disabled={busy} onClick={() => act({ type: "reject_trade" })}>✋ Reject</button></div>}
+    {iAmProposer && <button className="ghost" disabled={busy} onClick={() => act({ type: "cancel_trade" })}>✕ Cancel proposal</button>}
+    {!iAmRecipient && !iAmProposer && <p className="muted">Waiting for response.</p>}
+  </section>;
+}
+
 function TradeDesk({ state, act, busy }: { state: GameState; act: (a: GameAction) => void; busy: boolean }) {
-  const canTrade = state.canAct && (state.phase === "end" || state.phase === "debt") && state.legalActions.some((a) => a.type === "trade");
+  const canTrade = state.canAct && (state.phase === "end" || state.phase === "debt") && state.legalActions.some((a) => a.type === "propose_trade");
   const partners = state.players.filter((p) => p !== state.viewer && state.playerState[p].active);
   const [toPlayer, setToPlayer] = useState(partners[0] ?? "");
   const [cashFrom, setCashFrom] = useState(0);
@@ -462,14 +487,14 @@ function TradeDesk({ state, act, busy }: { state: GameState; act: (a: GameAction
   const theirProps = Object.entries(state.owners).filter(([, o]) => o === partner).map(([id]) => state.board[Number(id)]).filter((sp) => (state.buildings[String(sp.id)] ?? 0) === 0);
   const toggle = (list: number[], id: number) => list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
   return <details className="trade-desk">
-    <summary>🤝 Trade / transfer desk</summary>
+    <summary>🤝 Propose trade</summary>
     <label>Partner<select value={partner} onChange={(e) => { setToPlayer(e.target.value); setTake([]); }}>
       {partners.map((p) => <option key={p} value={p}>{state.names[p]}</option>)}
     </select></label>
     <div className="trade-cash"><label>You give €<input type="number" min="0" value={cashFrom} onChange={(e) => setCashFrom(Number(e.target.value || 0))} /></label><label>You get €<input type="number" min="0" value={cashTo} onChange={(e) => setCashTo(Number(e.target.value || 0))} /></label></div>
     <div className="trade-columns"><div><strong>You give</strong>{myProps.length ? myProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={give.includes(sp.id)} onChange={() => setGive(toggle(give, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div><div><strong>You get</strong>{theirProps.length ? theirProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={take.includes(sp.id)} onChange={() => setTake(toggle(take, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div></div>
-    <button className="action-btn action-trade" disabled={busy} onClick={() => act({ type: "trade", toPlayer: partner, cashFrom, cashTo, propertiesFrom: give, propertiesTo: take })}>🤝 Execute agreed trade</button>
-    <p className="muted">Table-trust mode: trade executes immediately. Improved color groups are locked until houses/hotel are gone.</p>
+    <button className="action-btn action-propose_trade" disabled={busy} onClick={() => act({ type: "propose_trade", toPlayer: partner, cashFrom, cashTo, propertiesFrom: give, propertiesTo: take })}>🤝 Send trade proposal</button>
+    <p className="muted">Other player must accept or reject. Improved color groups are locked until houses/hotel are gone.</p>
   </details>;
 }
 
@@ -507,7 +532,7 @@ function phaseLabel(phase: string) {
 }
 
 function actionIcon(type: string) {
-  return ({ roll: "🎲", buy: "💸", skip_buy: "🔨", end_turn: "✅", pay_jail: "🚔", use_jail_card: "🎟️", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", debt: "💥", debt_resolved: "✅", declare_bankruptcy: "💀", unmortgage: "🔓", bid_auction: "🔨", pass_auction: "✋", trade: "🤝", resolve_debt: "✅" } as Record<string, string>)[type] ?? "👉";
+  return ({ roll: "🎲", buy: "💸", skip_buy: "🔨", end_turn: "✅", pay_jail: "🚔", use_jail_card: "🎟️", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", debt: "💥", debt_resolved: "✅", declare_bankruptcy: "💀", unmortgage: "🔓", bid_auction: "🔨", pass_auction: "✋", propose_trade: "🤝", accept_trade: "✅", reject_trade: "✋", cancel_trade: "✕", trade: "🤝", resolve_debt: "✅" } as Record<string, string>)[type] ?? "👉";
 }
 
 function CurrentSpot({ state }: { state: GameState }) {

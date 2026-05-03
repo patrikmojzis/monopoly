@@ -64,6 +64,7 @@ def links(game_id: str) -> dict:
 
 
 def public_state(state, viewer: str) -> dict:
+    viewer_actions = legal_actions(state, viewer) if viewer in state.players else []
     return {
         "id": state.id,
         "version": state.version,
@@ -71,7 +72,7 @@ def public_state(state, viewer: str) -> dict:
         "turn": state.turn,
         "phase": state.phase,
         "winner": state.winner,
-        "canAct": viewer == state.turn and state.phase != "finished",
+        "canAct": bool(viewer_actions),
         "players": state.players,
         "names": state.names,
         "playerState": {p: {"cash": ps.cash, "position": ps.position, "jailTurns": ps.jail_turns, "jailCards": ps.jail_cards, "active": ps.active, "netWorth": net_worth(state, p)} for p, ps in state.player_state.items()},
@@ -80,12 +81,13 @@ def public_state(state, viewer: str) -> dict:
         "mortgaged": state.mortgaged,
         "auction": state.auction,
         "debt": state.debt,
+        "pendingTrade": asdict(state.pending_trade) if state.pending_trade else None,
         "freeParkingPot": state.free_parking_pot,
         "lastRoll": state.last_roll,
         "doublesInRow": state.doubles_in_row,
         "pendingSpace": state.pending_space,
         "board": [asdict(space) | {"currentRent": rent_for(state, space, state.last_roll[0] + state.last_roll[1] if state.last_roll else None), "isBuyable": space.kind in BUYABLE, "mortgageValue": mortgage_value(space) if space.kind in BUYABLE else 0, "unmortgageCost": unmortgage_cost(space) if space.kind in BUYABLE else 0} for space in BOARD],
-        "legalActions": legal_actions(state, viewer) if viewer in state.players else [],
+        "legalActions": viewer_actions,
         "history": state.history[-30:],
         "links": links(state.id),
     }

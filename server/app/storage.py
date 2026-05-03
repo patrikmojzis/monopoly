@@ -7,7 +7,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
-from .engine import GameState, PlayerState
+from .engine import GameState, PlayerState, TradeProposal
 
 DB_PATH = Path(os.environ.get("MONOPOLY_DB_PATH", os.environ.get("GAME_DB_PATH", "data/dev.sqlite3")))
 
@@ -45,6 +45,10 @@ def load_game(game_id: str) -> GameState | None:
     raw["mortgaged"] = {int(k): bool(v) for k, v in raw.get("mortgaged", {}).items()}
     raw.setdefault("auction", None)
     raw.setdefault("debt", None)
+    if raw.get("pending_trade"):
+        raw["pending_trade"] = TradeProposal(**raw["pending_trade"])
+    else:
+        raw["pending_trade"] = None
     raw.setdefault("free_parking_pot", 0)
     raw["last_roll"] = tuple(raw["last_roll"]) if raw.get("last_roll") else None
     raw.setdefault("doubles_in_row", 0)

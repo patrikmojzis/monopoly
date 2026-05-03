@@ -38,7 +38,10 @@ export type GameAction =
   | { type: "unmortgage"; spaceId: number }
   | { type: "bid_auction"; spaceId?: number; amount: number }
   | { type: "pass_auction"; spaceId?: number }
-  | { type: "trade"; toPlayer: Player; cashFrom?: number; cashTo?: number; propertiesFrom?: number[]; propertiesTo?: number[] }
+  | { type: "propose_trade"; toPlayer: Player; cashFrom?: number; cashTo?: number; propertiesFrom?: number[]; propertiesTo?: number[] }
+  | { type: "accept_trade" }
+  | { type: "reject_trade" }
+  | { type: "cancel_trade" }
   | { type: "resolve_debt" }
   | { type: "declare_bankruptcy" };
 
@@ -60,6 +63,7 @@ export type GameState = {
   mortgaged: Record<string, boolean>;
   auction: { spaceId: number; currentBid: number; highBidder: Player | null; active: Player[]; afterTurn: Player } | null;
   debt: { player: Player; amount: number; creditor: Player | null; reason: string } | null;
+  pendingTrade: { id: string; fromPlayer?: Player; from_player?: Player; toPlayer?: Player; to_player?: Player; cashFrom?: number; cash_from?: number; cashTo?: number; cash_to?: number; propertiesFrom?: number[]; properties_from?: number[]; propertiesTo?: number[]; properties_to?: number[]; createdVersion?: number; created_version?: number } | null;
   freeParkingPot: number;
   lastRoll: [number, number] | null;
   doublesInRow: number;

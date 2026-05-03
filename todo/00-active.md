@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E deployed; Phase F animation first pass implemented locally; build/tests passed; commit/deploy/QA next.
+Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G real trades implemented locally; tests/build passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -21,18 +21,18 @@ Status: Phase A+B/C/D/E deployed; Phase F animation first pass implemented local
 - [x] Phase D: player seats + board space (`05`) — first pass: seat cards pulse/turn labeling, no permanent player sidebar
 - [x] Phase E: deed hand/cards (`06`) — first pass: grouped physical deed cards, card click selects board tile
 - [x] Phase F: animations/game feel (`08`) — first pass: event toast overlays, dice HUD pop, selected tile ring, city breathe, auction/debt/build/mortgage motion
-- [ ] Phase G: real trades (`07`)
+- [x] Phase G: real trades (`07`) — first pass: pending trade proposals, accept/reject/cancel, stale validation, UI pending trade panel
 - [ ] Phase H: mobile game mode (`09`)
 - [ ] Phase I: visual art polish (`10`)
 - [ ] Phase J: QA/replay (`12`)
 
 ## Next action
 
-Commit/deploy Phase F and run visual QA on roll/buy/card/rent event feedback. Then start Phase G: real trades (`07`).
+Commit/deploy Phase G and run API + browser QA on propose/accept/reject trade flow. Then start Phase H: mobile game mode polish (`09`).
 
 ## Last known deployed commit
 
-- `3bf8e97` — physical deed cards, grouped deed hand, seat-card polish.
+- `17d3ce2` — game-feel animations: event toasts, dice pop, selected tile ring, ambient board motion.
 
 ## Current critique of deployed commit
 

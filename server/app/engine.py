@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import random
+import uuid
 from typing import Literal
 
 Player = str
@@ -101,6 +102,18 @@ class PlayerState:
 
 
 @dataclass(slots=True)
+class TradeProposal:
+    id: str
+    from_player: Player
+    to_player: Player
+    cash_from: int = 0
+    cash_to: int = 0
+    properties_from: list[int] = field(default_factory=list)
+    properties_to: list[int] = field(default_factory=list)
+    created_version: int = 0
+
+
+@dataclass(slots=True)
 class GameState:
     id: str
     players: list[Player]
@@ -116,6 +129,7 @@ class GameState:
     pending_space: int | None = None
     auction: dict | None = None
     debt: dict | None = None
+    pending_trade: TradeProposal | None = None
     free_parking_pot: int = 0
     winner: Player | None = None
     version: int = 0
@@ -311,6 +325,43 @@ def enter_debt_if_needed(state: GameState, player: Player, creditor: Player | No
     return False
 
 
+def validate_trade_terms(state: GameState, proposer: Player, other: Player, cash_from: int, cash_to: int, props_from: list[int], props_to: list[int]) -> None:
+    if other not in state.players or other == proposer or not state.player_state[other].active:
+        raise IllegalAction("Bad trade partner")
+    if cash_from < 0 or cash_to < 0:
+        raise IllegalAction("Bad trade cash")
+    if state.player_state[proposer].cash < cash_from or state.player_state[other].cash < cash_to:
+        raise IllegalAction("Not enough cash for trade")
+    for sid in props_from:
+        if state.owners.get(sid) != proposer or not can_transfer_property(state, sid):
+            raise IllegalAction("Cannot trade one of your properties")
+    for sid in props_to:
+        if state.owners.get(sid) != other or not can_transfer_property(state, sid):
+            raise IllegalAction("Cannot trade one of partner properties")
+    if cash_from == cash_to == 0 and not props_from and not props_to:
+        raise IllegalAction("Empty trade")
+
+
+def apply_trade_terms(state: GameState, proposal: TradeProposal) -> None:
+    validate_trade_terms(state, proposal.from_player, proposal.to_player, proposal.cash_from, proposal.cash_to, proposal.properties_from, proposal.properties_to)
+    a = proposal.from_player
+    b = proposal.to_player
+    state.player_state[a].cash -= proposal.cash_from
+    state.player_state[b].cash += proposal.cash_from
+    state.player_state[b].cash -= proposal.cash_to
+    state.player_state[a].cash += proposal.cash_to
+    for sid in proposal.properties_from:
+        state.owners[sid] = b
+    for sid in proposal.properties_to:
+        state.owners[sid] = a
+
+
+def describe_trade(state: GameState, proposal: TradeProposal) -> tuple[str, str]:
+    left = ", ".join(BOARD[i].name for i in proposal.properties_from) or "nič"
+    right = ", ".join(BOARD[i].name for i in proposal.properties_to) or "nič"
+    return left, right
+
+
 def resolve_debt_if_possible(state: GameState, player: Player) -> None:
     if state.debt and state.debt.get("player") == player and state.player_state[player].cash >= 0:
         state.history.append(event(state, "debt_resolved", player, f"{state.names[player]} vyriešil dlh. Bankár nejasne prikyvuje."))
@@ -360,7 +411,16 @@ def declare_bankruptcy(state: GameState, player: Player) -> None:
 
 
 def legal_actions(state: GameState, player: Player) -> list[dict]:
-    if state.phase == "finished" or player != state.turn or not state.player_state.get(player, PlayerState(active=False)).active:
+    if state.phase == "finished" or not state.player_state.get(player, PlayerState(active=False)).active:
+        return []
+    if state.pending_trade:
+        t = state.pending_trade
+        if player == t.to_player:
+            return [{"type": "reject_trade", "label": "Reject trade"}, {"type": "accept_trade", "label": "Accept trade"}]
+        if player == t.from_player:
+            return [{"type": "cancel_trade", "label": "Cancel trade"}]
+        return []
+    if player != state.turn:
         return []
     ps = state.player_state[player]
     if state.phase == "debt" and state.debt and state.debt.get("player") == player:
@@ -370,7 +430,7 @@ def legal_actions(state: GameState, player: Player) -> list[dict]:
         else:
             actions.append({"type": "declare_bankruptcy", "label": "Vyhlásiť bankrot"})
         if len(active_players(state)) > 1:
-            actions.insert(0, {"type": "trade", "label": "Zohnať cash cez trade"})
+            actions.insert(0, {"type": "propose_trade", "label": "Navrhnúť trade"})
         for i in range(len(BOARD)):
             if can_sell_building(state, player, i):
                 b = state.buildings.get(i, 0)
@@ -401,7 +461,7 @@ def legal_actions(state: GameState, player: Player) -> list[dict]:
     if state.phase == "end":
         actions = [{"type": "end_turn", "label": "Ukončiť ťah"}]
         if len(active_players(state)) > 1:
-            actions.insert(0, {"type": "trade", "label": "Trade / transfer desk"})
+            actions.insert(0, {"type": "propose_trade", "label": "Navrhnúť trade"})
         for i in range(len(BOARD)):
             if can_sell_building(state, player, i):
                 b = state.buildings.get(i, 0)
@@ -578,39 +638,47 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         resolve_debt_if_possible(state, player)
         return bump(state)
 
-    if action_type == "trade":
+    if action_type == "propose_trade":
         if state.phase not in {"end", "debt"}:
             raise IllegalAction("Trades only at end/debt phase")
         other = action.get("toPlayer")
-        if other not in state.players or other == player or not state.player_state[other].active:
-            raise IllegalAction("Bad trade partner")
         cash_from = max(0, int(action.get("cashFrom") or 0))
         cash_to = max(0, int(action.get("cashTo") or 0))
         props_from = [int(i) for i in action.get("propertiesFrom") or []]
         props_to = [int(i) for i in action.get("propertiesTo") or []]
-        if state.player_state[player].cash < cash_from or state.player_state[other].cash < cash_to:
-            raise IllegalAction("Not enough cash for trade")
-        for sid in props_from:
-            if state.owners.get(sid) != player or not can_transfer_property(state, sid):
-                raise IllegalAction("Cannot trade one of your properties")
-        for sid in props_to:
-            if state.owners.get(sid) != other or not can_transfer_property(state, sid):
-                raise IllegalAction("Cannot trade one of partner properties")
-        if cash_from == cash_to == 0 and not props_from and not props_to:
-            raise IllegalAction("Empty trade")
-        state.player_state[player].cash -= cash_from
-        state.player_state[other].cash += cash_from
-        state.player_state[other].cash -= cash_to
-        state.player_state[player].cash += cash_to
-        for sid in props_from:
-            state.owners[sid] = other
-        for sid in props_to:
-            state.owners[sid] = player
-        left = ", ".join(BOARD[i].name for i in props_from) or "nič"
-        right = ", ".join(BOARD[i].name for i in props_to) or "nič"
-        state.history.append(event(state, "trade", player, f"Trade: {state.names[player]} dal {left} + €{cash_from}; {state.names[other]} dal {right} + €{cash_to}."))
-        resolve_debt_if_possible(state, player)
-        check_bankruptcy_and_winner(state, other)
+        validate_trade_terms(state, player, other, cash_from, cash_to, props_from, props_to)
+        proposal = TradeProposal(uuid.uuid4().hex[:10], player, other, cash_from, cash_to, props_from, props_to, state.version)
+        state.pending_trade = proposal
+        left, right = describe_trade(state, proposal)
+        state.history.append(event(state, "trade_proposed", player, f"Trade návrh: {state.names[player]} ponúka {left} + €{cash_from}; chce {right} + €{cash_to} od {state.names[other]}."))
+        return bump(state)
+
+    if action_type in {"accept_trade", "reject_trade", "cancel_trade"}:
+        proposal = state.pending_trade
+        if not proposal:
+            raise IllegalAction("No pending trade")
+        if action_type == "accept_trade":
+            if player != proposal.to_player:
+                raise IllegalAction("Only recipient can accept trade")
+            apply_trade_terms(state, proposal)
+            left, right = describe_trade(state, proposal)
+            state.pending_trade = None
+            state.history.append(event(state, "trade_accepted", player, f"Trade prijatý: {state.names[proposal.from_player]} dal {left} + €{proposal.cash_from}; {state.names[proposal.to_player]} dal {right} + €{proposal.cash_to}."))
+            resolve_debt_if_possible(state, proposal.from_player)
+            resolve_debt_if_possible(state, proposal.to_player)
+            check_bankruptcy_and_winner(state, proposal.from_player)
+            check_bankruptcy_and_winner(state, proposal.to_player)
+            return bump(state)
+        if action_type == "reject_trade":
+            if player != proposal.to_player:
+                raise IllegalAction("Only recipient can reject trade")
+            state.pending_trade = None
+            state.history.append(event(state, "trade_rejected", player, f"{state.names[player]} odmietol trade od {state.names[proposal.from_player]}."))
+            return bump(state)
+        if player != proposal.from_player:
+            raise IllegalAction("Only proposer can cancel trade")
+        state.pending_trade = None
+        state.history.append(event(state, "trade_cancelled", player, f"{state.names[player]} zrušil trade návrh."))
         return bump(state)
 
     if action_type == "mortgage":

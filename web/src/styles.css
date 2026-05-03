@@ -725,3 +725,15 @@ button.mini-deed:hover { transform: translateY(-4px) rotate(-1deg); box-shadow: 
 @media (prefers-reduced-motion: reduce) {
   .game-effect, .game-effect span, .hud-pill.dice-pop, .tile.selected::after, .board-center > img, .game-mode-shell .action-roll::after, .auction-stage, .debt-stage, .mortgage-stamp, .building-stack b { animation: none !important; }
 }
+
+
+/* Phase G: real trade proposal surface. */
+.pending-trade { border-color: rgba(56,189,248,.34); background: linear-gradient(135deg, rgba(15,23,42,.86), rgba(30,64,175,.22)); }
+.pending-trade h3 { margin: 2px 0 12px; color: #f8fafc; }
+.pending-trade-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.pending-trade-grid > div { padding: 12px; border-radius: 16px; background: rgba(15,23,42,.46); border: 1px solid rgba(148,163,184,.22); }
+.pending-trade-grid b, .pending-trade-grid span { display: block; }
+.pending-trade-grid span { margin-top: 6px; color: #cbd5e1; line-height: 1.25; }
+.trade-response-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.action-propose_trade, .action-accept_trade { background: linear-gradient(135deg, #22c55e, #0ea5e9); color: white; }
+@media (max-width: 760px) { .pending-trade-grid { grid-template-columns: 1fr; } }
