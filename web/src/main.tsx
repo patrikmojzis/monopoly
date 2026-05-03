@@ -139,7 +139,7 @@ function App() {
     <CurrentSpot state={state} />
 
     <section className="layout classic-layout">
-      <div className="board-wrap"><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<BoardLegend /></div>
+      <div className="board-wrap"><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<GroupTracker state={state} /><BoardLegend /></div>
       <aside>
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
@@ -252,6 +252,26 @@ function CurrentSpot({ state }: { state: GameState }) {
       {space.isBuyable && <span>Rent <strong>€{space.currentRent || space.rent || "dice"}</strong></span>}
       {owner && <span>Owner <strong>{emojiFor(state, owner)} {state.names[owner]}</strong></span>}
       {buildings > 0 && <span>Build <strong>{buildings === 5 ? "🏨 hotel" : `${buildings}× 🏠`}</strong></span>}
+    </div>
+  </section>;
+}
+
+function GroupTracker({ state }: { state: GameState }) {
+  const groups = Array.from(new Set(state.board.map((s) => s.color).filter(Boolean))) as string[];
+  return <section className="card group-tracker">
+    <div className="section-title"><h2>Color groups</h2><span className="muted">monopoly radar</span></div>
+    <div className="group-grid">
+      {groups.map((color) => {
+        const spaces = state.board.filter((s) => s.color === color);
+        const byOwner = state.players.map((p) => ({ p, count: spaces.filter((sp) => state.owners[String(sp.id)] === p).length })).sort((a, b) => b.count - a.count)[0];
+        const pct = spaces.length ? Math.round((byOwner.count / spaces.length) * 100) : 0;
+        return <div key={color} className="group-chip">
+          <b style={{ background: COLOR[color] ?? "#64748b" }} />
+          <span>{color.replace(/-/g, " ")}</span>
+          <strong>{byOwner.count ? `${emojiFor(state, byOwner.p)} ${byOwner.count}/${spaces.length}` : `0/${spaces.length}`}</strong>
+          <i><em style={{ width: `${pct}%` }} /></i>
+        </div>;
+      })}
     </div>
   </section>;
 }

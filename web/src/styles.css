@@ -278,3 +278,14 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .table-pulse { grid-template-columns: 1fr; gap: 7px; }
   .table-pulse div { padding: 8px 10px; }
 }
+
+/* Iteration pass 6: color group ownership radar. */
+.group-tracker { padding: 12px; }
+.group-tracker h2 { margin: 0; }
+.group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-top: 10px; }
+.group-chip { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 7px; padding: 8px; border-radius: 12px; background: rgba(15,23,42,.42); border: 1px solid rgba(255,255,255,.07); color: #cbd5e1; font-size: .78rem; }
+.group-chip b { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); }
+.group-chip strong { color: #fef3c7; }
+.group-chip i { grid-column: 1 / -1; height: 5px; background: rgba(15,23,42,.8); border-radius: 999px; overflow: hidden; }
+.group-chip em { display: block; height: 100%; background: linear-gradient(90deg,#22c55e,#facc15); border-radius: inherit; }
+@media (max-width: 760px) { .group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
