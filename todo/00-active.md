@@ -25,19 +25,19 @@ Status: Game Mode v1 delivered and QA-smoked. Patrik requested a new TODO/planni
 - [x] Phase H: mobile game mode (`09`) — first pass: compact phone HUD, touch board affordance, Me/Sel center controls, bottom-sheet drawers, mobile deed/dock sizing
 - [x] Phase I: visual art polish (`10`) — first pass: warm tabletop background, paper tiles, wood board frame, tactile buttons/tokens, physical card tone
 - [ ] Phase J: QA/replay (`12`) — superseded by V2 QA checklist before replay
-- [ ] V2-A: navigation + exit-to-setup semantics (`21`)
+- [x] V2-A: navigation + exit-to-setup semantics (`21`) — first pass: menu has Back to board + Exit game to setup
 - [ ] V2-B: table setup / human-agent-NPC seat model (`22`)
 - [ ] V2-C: token figurines + picker (`23`)
 - [ ] V2-D: fullscreen board comfort (`24`)
 - [ ] V2-H: board readability and orientation (`28`)
-- [ ] V2-I: reference UI patterns / center-board action stage (`29`)
+- [x] V2-I: reference UI patterns / center-board action stage (`29`) — first pass: board center hosts dice/actions/tiny log
 - [ ] V2-E: animation system (`25`)
 - [ ] V2-F: sound system (`26`)
 - [ ] V2-G: QA/replay readiness (`27`)
 
 ## Next action
 
-Read `20-v2-polish-overview.md`, then implement V2-A (`21-navigation-exit.md`) first. Board readability (`28`) and reference patterns (`29`) are now the core product focus. Center-board action stage is likely the key UX move before decorative polish.
+Next implement V2-H (`28-board-readability-v2.md`): tile orientation/readability, token piece redesign, owner/building clarity. Center-board action stage is now in first pass; QA it on live before replay.
 
 ## Last known deployed commit
 

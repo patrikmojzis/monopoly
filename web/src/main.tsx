@@ -93,6 +93,18 @@ function App() {
     }
   }
 
+  function exitToSetup() {
+    setState(null);
+    setGameId(null);
+    setToken(null);
+    setCreated(null);
+    setOpenDrawer(null);
+    setSelectedSpaceId(null);
+    setBoardFocus(false);
+    setRollingDice(false);
+    window.history.replaceState(null, "", "/");
+  }
+
   useEffect(() => { if (gameId && token) refresh(); }, []);
   useEffect(() => {
     document.body.classList.toggle("game-mode-active", !!state);
@@ -147,7 +159,7 @@ function App() {
       <SeatRail state={state} />
       <div className="board-scroll">
         <div className="board-canvas">
-          <Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />
+          <Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
         </div>
       </div>
       <BoardControls state={state} selectedId={selectedSpace?.id ?? null} />
@@ -158,7 +170,7 @@ function App() {
     </section>
 
     <GameActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} setOpenDrawer={setOpenDrawer} autoBots={autoBots} />
-    <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} selectedSpaceId={selectedSpaceId} setSelectedSpaceId={setSelectedSpaceId} act={act} busy={busy} />
+    <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} onExitToSetup={exitToSetup} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} selectedSpaceId={selectedSpaceId} setSelectedSpaceId={setSelectedSpaceId} act={act} busy={busy} />
   </main>;
 }
 function GameTopChrome({ state, busy, refresh, start, setOpenDrawer, boardFocus, setBoardFocus, soundOn, setSoundOn }: { state: GameState; busy: boolean; refresh: () => void; start: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; boardFocus: boolean; setBoardFocus: (value: boolean) => void; soundOn: boolean; setSoundOn: (value: boolean) => void }) {
@@ -187,7 +199,6 @@ function GameHud({ state, rollingDice }: { state: GameState; rollingDice: boolea
 
 function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; autoBots: boolean }) {
   const viewerTurn = state.turn === state.viewer && state.canAct;
-  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "propose_trade"].includes(a.type)).slice(0, 3);
   const latest = state.history[state.history.length - 1]?.message;
   const waitingNpc = !viewerTurn && state.turn !== state.viewer && isNpcSeat(state, state.turn);
   return <section className={`game-action-dock ${viewerTurn ? "active" : "waiting"}`}>
@@ -197,16 +208,16 @@ function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBo
       <small>{latest ?? "Čakáme na prvý hod."}</small>
     </div>
     <div className="dock-primary-actions">
-      {viewerTurn && primary.length ? primary.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : null}
+      {viewerTurn && <span className="waiting-chip">Actions are on the board.</span>}
       {waitingNpc && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>Run NPC</button>}
-      {!viewerTurn && !waitingNpc && state.phase !== "finished" && <span className="waiting-chip">No button here — real player/agent turn</span>}
+      {!viewerTurn && !waitingNpc && state.phase !== "finished" && <span className="waiting-chip">Real player/agent turn</span>}
       <button className="ghost" onClick={() => setOpenDrawer("cards")}>Cards</button>
       <button className="ghost" onClick={() => setOpenDrawer("trade")}>Trade</button>
     </div>
   </section>;
 }
 
-function GameDrawer({ open, onClose, state, created, error, refresh, start, autoBots, setAutoBots, hasNpcSeats, setOpenDrawer, selectedSpaceId, setSelectedSpaceId, act, busy }: { open: DrawerName | null; onClose: () => void; state: GameState; created: CreateGameResponse | null; error: string | null; refresh: () => void; start: () => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean; setOpenDrawer: (drawer: DrawerName | null) => void; selectedSpaceId: number | null; setSelectedSpaceId: (id: number) => void; act: (a: GameAction) => void; busy: boolean }) {
+function GameDrawer({ open, onClose, onExitToSetup, state, created, error, refresh, start, autoBots, setAutoBots, hasNpcSeats, setOpenDrawer, selectedSpaceId, setSelectedSpaceId, act, busy }: { open: DrawerName | null; onClose: () => void; onExitToSetup: () => void; state: GameState; created: CreateGameResponse | null; error: string | null; refresh: () => void; start: () => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean; setOpenDrawer: (drawer: DrawerName | null) => void; selectedSpaceId: number | null; setSelectedSpaceId: (id: number) => void; act: (a: GameAction) => void; busy: boolean }) {
   if (!open) return null;
   return <div className="drawer-backdrop" onClick={onClose}>
     <aside className={`game-drawer drawer-${open}`} onClick={(e) => e.stopPropagation()}>
@@ -217,14 +228,15 @@ function GameDrawer({ open, onClose, state, created, error, refresh, start, auto
       {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
       {open === "trade" && <div className="drawer-stack"><PendingTrade state={state} act={act} busy={busy} /><TradeDesk state={state} act={act} busy={busy} /></div>}
       {open === "menu" && <div className="drawer-stack menu-grid menu-panel">
-        <button className="menu-primary" onClick={onClose}>↩ Exit menu / back to board</button>
+        <button className="menu-primary" onClick={onClose}>↩ Back to board</button>
+        <button className="ghost danger-ish" onClick={onExitToSetup}>⎋ Exit game to setup</button>
         <button onClick={refresh} disabled={busy}>↻ Refresh state</button>
         <button className="ghost" onClick={() => { onClose(); setTimeout(() => document.querySelector('.board-scroll')?.scrollTo({ left: 9999, top: 9999, behavior: 'smooth' }), 30); }}>◇ Center board</button>
         <button className="ghost" onClick={() => setOpenDrawer("rules")}>📜 Rules</button>
         {hasNpcSeats && <label className="toggle-row"><input type="checkbox" checked={autoBots} onChange={(e) => setAutoBots(e.target.checked)} /> Auto-play NPCs</label>}
         {!hasNpcSeats && <p className="muted menu-note">No NPC seats here. Clawd/real players act from their own seat/API — no confusing bot button.</p>}
         {created && <InvitePanel created={created} state={state} />}
-        <button className="ghost danger-ish" onClick={start} disabled={busy}>＋ New table</button>
+        <button className="ghost" onClick={onExitToSetup}>＋ New table from setup</button>
         {error && <p className="error">{error}</p>}
       </div>}
     </aside>
@@ -633,13 +645,32 @@ function eventIcon(type: string) {
   return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", debt: "💥", debt_resolved: "✅", declare_bankruptcy: "💀", unmortgage: "🔓", auction: "🔨", auction_bid: "🔨", auction_pass: "✋", auction_win: "🏁", trade: "🤝", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
 }
 
-function Board({ state, selectedId, onSelect }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void }) {
+function Board({ state, selectedId, onSelect, legal, busy, act, runBot, autoBots }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; autoBots: boolean }) {
   return <div className="classic-board card">
     <div className="board-center">
       <img src="/panda-capital-board-center.png" alt="Panda Capital city board art" />
-      <div className="board-logo"><p className="eyebrow">Panda Capital</p><h2>City Board</h2><p>Pass GO €200 · Jail · Auctions · Trades</p></div>
+      <BoardCenterStage state={state} legal={legal} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
     </div>
     {state.board.map((space) => <Tile key={space.id} space={space} state={state} selected={selectedId === space.id} onSelect={onSelect} />)}
+  </div>;
+}
+
+function BoardCenterStage({ state, legal, busy, act, runBot, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; autoBots: boolean }) {
+  const viewerTurn = state.turn === state.viewer && state.canAct;
+  const actions = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "propose_trade"].includes(a.type)).slice(0, 4);
+  const waitingNpc = !viewerTurn && isNpcSeat(state, state.turn);
+  const recent = [...state.history].reverse().slice(0, 3);
+  const roll = state.lastRoll;
+  return <div className={`board-center-stage ${viewerTurn ? "stage-active" : "stage-waiting"}`}>
+    <p className="eyebrow">{state.phase === "finished" ? "Game over" : viewerTurn ? "Your turn" : "On turn"}</p>
+    <div className="stage-dice" aria-label="Last dice roll">{roll ? <><span>{dieFace(roll[0])}</span><span>{dieFace(roll[1])}</span></> : <><span>🎲</span><span>🎲</span></>}</div>
+    <h2>{viewerTurn ? actionPrompt(state) : `${emojiFor(state, state.turn)} ${state.names[state.turn]}`}</h2>
+    <div className="stage-actions">
+      {viewerTurn && actions.length ? actions.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : null}
+      {waitingNpc && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>Run NPC</button>}
+      {!viewerTurn && !waitingNpc && state.phase !== "finished" && <span className="waiting-chip">real player / agent turn</span>}
+    </div>
+    <div className="stage-log">{recent.length ? recent.map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>) : <p><span>•</span>Waiting for first move.</p>}</div>
   </div>;
 }
 
