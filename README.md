@@ -98,3 +98,52 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/jso
 - `server/app/main.py` — FastAPI routes, token auth, Clawd auto-turn.
 - `web/src/main.tsx` — React UI.
 - `Dockerfile`, `docker-compose.yml` — deploy path.
+
+## Optional GitHub Actions deploy
+
+This repo includes `.github/workflows/deploy.yml`.
+
+On every push to `main`, it can SSH into a Docker server, pull the latest repo, rebuild, restart, and healthcheck the app.
+
+Required GitHub repo secrets:
+
+- `SERVER_HOST` — server hostname/IP.
+- `SERVER_USER` — SSH user, e.g. `root` or `deploy`.
+- `SSH_PRIVATE_KEY` — private key with access to that user.
+- `DEPLOY_PATH` — target directory, e.g. `/opt/panda-capital`.
+- `PUBLIC_BASE_URL` — public URL, e.g. `https://capital.example.com`.
+
+Optional secrets:
+
+- `HOST_BIND` — defaults to `127.0.0.1`; use `0.0.0.0` only if exposing directly without reverse proxy.
+- `HOST_PORT` — defaults to `8000`.
+
+Server prerequisites:
+
+```bash
+apt update
+apt install -y git docker.io docker-compose-plugin python3
+systemctl enable --now docker
+```
+
+Recommended production shape: keep `HOST_BIND=127.0.0.1`, then expose via Caddy/Nginx reverse proxy with TLS.
+
+### Recommended deploy user
+
+Use a dedicated SSH user instead of root:
+
+```bash
+adduser --disabled-password --gecos "" deploy
+usermod -aG docker deploy
+mkdir -p /srv/monopoly
+chown -R deploy:deploy /srv/monopoly
+mkdir -p /home/deploy/.ssh
+nano /home/deploy/.ssh/authorized_keys
+chown -R deploy:deploy /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh
+chmod 600 /home/deploy/.ssh/authorized_keys
+```
+
+Then set GitHub secret `SERVER_USER=deploy` and `DEPLOY_PATH=/srv/monopoly`.
+
+Note: membership in the `docker` group is powerful and effectively close to root access. It is still cleaner than enabling root SSH. For a stricter setup, use a root-owned deploy script with narrowly scoped sudo permissions.

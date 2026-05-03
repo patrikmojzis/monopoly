@@ -1,0 +1,76 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Docker server
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+          HOST_BIND: ${{ secrets.HOST_BIND }}
+          HOST_PORT: ${{ secrets.HOST_PORT }}
+        run: |
+          ssh "$SERVER_USER@$SERVER_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' PUBLIC_BASE_URL='$PUBLIC_BASE_URL' HOST_BIND='${HOST_BIND:-127.0.0.1}' HOST_PORT='${HOST_PORT:-8000}' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          REPO_URL="https://github.com/patrikmojzis/monopoly.git"
+          DEPLOY_PATH="${DEPLOY_PATH:-/srv/monopoly}"
+          PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-http://localhost:8000}"
+          HOST_BIND="${HOST_BIND:-127.0.0.1}"
+          HOST_PORT="${HOST_PORT:-8000}"
+
+          if [ ! -d "$DEPLOY_PATH/.git" ]; then
+            rm -rf "$DEPLOY_PATH"
+            mkdir -p "$(dirname "$DEPLOY_PATH")"
+            git clone "$REPO_URL" "$DEPLOY_PATH"
+          fi
+
+          cd "$DEPLOY_PATH"
+          git fetch origin main
+          git reset --hard origin/main
+
+          printf 'PUBLIC_BASE_URL=%s\nHOST_BIND=%s\nHOST_PORT=%s\n' "$PUBLIC_BASE_URL" "$HOST_BIND" "$HOST_PORT" > .env
+
+          docker compose up -d --build
+          docker compose ps
+
+          python3 -c "import os,time,urllib.request; url='http://127.0.0.1:%s/api/health'%os.environ.get('HOST_PORT','8000'); last=None
+          for _ in range(30):
+              try:
+                  body=urllib.request.urlopen(url,timeout=3).read().decode()
+                  assert 'ok' in body
+                  print('health ok:', url)
+                  raise SystemExit(0)
+              except Exception as e:
+                  last=e; time.sleep(2)
+          raise SystemExit('healthcheck failed for %s: %r'%(url,last))"
+          REMOTE
