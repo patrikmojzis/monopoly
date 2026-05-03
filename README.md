@@ -109,6 +109,7 @@ Required GitHub repo secrets:
 
 - `SERVER_HOST` — server hostname/IP.
 - `SERVER_USER` — SSH user, e.g. `root` or `deploy`.
+- `SERVER_PORT` — optional SSH port, defaults to `22`.
 - `SSH_PRIVATE_KEY` — private key with access to that user.
 - `DEPLOY_PATH` — target directory, e.g. `/opt/panda-capital`.
 - `PUBLIC_BASE_URL` — public URL, e.g. `https://monopoly.patrikmojzis.com`.

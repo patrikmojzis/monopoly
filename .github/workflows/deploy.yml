@@ -25,20 +25,31 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known_hosts
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+          if [ -z "${SERVER_HOST:-}" ]; then
+            echo "SERVER_HOST secret is missing" >&2
+            exit 1
+          fi
+          PORT="${SERVER_PORT:-22}"
+          ssh-keyscan -T 10 -p "$PORT" -H "$SERVER_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy via SSH
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
           HOST_BIND: ${{ secrets.HOST_BIND }}
           HOST_PORT: ${{ secrets.HOST_PORT }}
         run: |
-          ssh "$SERVER_USER@$SERVER_HOST" \
+          SSH_PORT="${SERVER_PORT:-22}"
+          ssh -p "$SSH_PORT" "$SERVER_USER@$SERVER_HOST" \
             "DEPLOY_PATH='$DEPLOY_PATH' PUBLIC_BASE_URL='$PUBLIC_BASE_URL' HOST_BIND='${HOST_BIND:-127.0.0.1}' HOST_PORT='${HOST_PORT:-8000}' bash -s" <<'REMOTE'
           set -euo pipefail
 
