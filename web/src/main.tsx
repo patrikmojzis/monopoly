@@ -226,7 +226,7 @@ function GameDrawer({ open, onClose, onExitToSetup, state, created, error, refre
       {open === "log" && <section className="history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 24).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>}
       {open === "players" && <div className="drawer-stack">{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</div>}
       {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
-      {open === "trade" && <div className="drawer-stack"><PendingTrade state={state} act={act} busy={busy} /><TradeDesk state={state} act={act} busy={busy} /></div>}
+      {open === "trade" && <div className="drawer-stack"><TradeGuide state={state} /><PendingTrade state={state} act={act} busy={busy} /><TradeDesk state={state} act={act} busy={busy} /></div>}
       {open === "menu" && <div className="drawer-stack menu-grid menu-panel">
         <button className="menu-primary" onClick={onClose}>↩ Back to board</button>
         <button className="ghost danger-ish" onClick={onExitToSetup}>⎋ Exit game to setup</button>
@@ -500,6 +500,21 @@ function DebtBanner({ state, legal, busy, act }: { state: GameState; legal: (Gam
   </section>;
 }
 
+function TradeGuide({ state }: { state: GameState }) {
+  const canTrade = state.canAct && (state.phase === "end" || state.phase === "debt") && state.legalActions.some((a) => a.type === "propose_trade");
+  const pending = !!state.pendingTrade;
+  return <section className={`trade-guide card ${canTrade ? "trade-ready" : "trade-locked"}`}>
+    <p className="label">How trading works</p>
+    <h3>{canTrade ? "Make an offer" : pending ? "Proposal is waiting" : "Trades unlock after your roll"}</h3>
+    <ol>
+      <li>Open Trade near the end of your turn.</li>
+      <li>Choose partner, cash, and properties: <b>I give</b> / <b>I get</b>.</li>
+      <li>Send proposal. The other seat must accept/reject from their own link/token.</li>
+    </ol>
+    {!canTrade && !pending && <p className="muted">Current phase: {phaseLabel(state.phase)}. Roll/buy/end decisions first; trade appears when the rules allow it.</p>}
+  </section>;
+}
+
 function PendingTrade({ state, act, busy }: { state: GameState; act: (a: GameAction) => void; busy: boolean }) {
   const trade = state.pendingTrade;
   if (!trade) return null;
@@ -538,13 +553,13 @@ function TradeDesk({ state, act, busy }: { state: GameState; act: (a: GameAction
   const myProps = Object.entries(state.owners).filter(([, o]) => o === state.viewer).map(([id]) => state.board[Number(id)]).filter((sp) => (state.buildings[String(sp.id)] ?? 0) === 0);
   const theirProps = Object.entries(state.owners).filter(([, o]) => o === partner).map(([id]) => state.board[Number(id)]).filter((sp) => (state.buildings[String(sp.id)] ?? 0) === 0);
   const toggle = (list: number[], id: number) => list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-  return <details className="trade-desk">
+  return <details className="trade-desk" open>
     <summary>🤝 Propose trade</summary>
     <label>Partner<select value={partner} onChange={(e) => { setToPlayer(e.target.value); setTake([]); }}>
       {partners.map((p) => <option key={p} value={p}>{state.names[p]}</option>)}
     </select></label>
-    <div className="trade-cash"><label>You give €<input type="number" min="0" value={cashFrom} onChange={(e) => setCashFrom(Number(e.target.value || 0))} /></label><label>You get €<input type="number" min="0" value={cashTo} onChange={(e) => setCashTo(Number(e.target.value || 0))} /></label></div>
-    <div className="trade-columns"><div><strong>You give</strong>{myProps.length ? myProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={give.includes(sp.id)} onChange={() => setGive(toggle(give, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div><div><strong>You get</strong>{theirProps.length ? theirProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={take.includes(sp.id)} onChange={() => setTake(toggle(take, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div></div>
+    <div className="trade-cash"><label>I give cash €<input type="number" min="0" value={cashFrom} onChange={(e) => setCashFrom(Number(e.target.value || 0))} /></label><label>I get cash €<input type="number" min="0" value={cashTo} onChange={(e) => setCashTo(Number(e.target.value || 0))} /></label></div>
+    <div className="trade-columns"><div><strong>I give</strong>{myProps.length ? myProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={give.includes(sp.id)} onChange={() => setGive(toggle(give, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div><div><strong>I get from {state.names[partner]}</strong>{theirProps.length ? theirProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={take.includes(sp.id)} onChange={() => setTake(toggle(take, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div></div>
     <button className="action-btn action-propose_trade" disabled={busy} onClick={() => act({ type: "propose_trade", toPlayer: partner, cashFrom, cashTo, propertiesFrom: give, propertiesTo: take })}>🤝 Send trade proposal</button>
     <p className="muted">Other player must accept or reject. Improved color groups are locked until houses/hotel are gone.</p>
   </details>;

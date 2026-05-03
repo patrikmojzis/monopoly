@@ -1015,3 +1015,14 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
 @media (max-width: 820px) {
   .game-mode-shell .board-center-stage { width: 62%; padding: 10px; }
 }
+
+/* Trade guide: make the current trade model discoverable until visual trade bowls exist. */
+.trade-guide { display: grid; gap: 7px; background: linear-gradient(135deg, rgba(88,28,135,.26), rgba(15,23,42,.72)); border-color: rgba(216,180,254,.22); }
+.trade-guide h3 { margin: 0; color: #f5d0fe; }
+.trade-guide ol { margin: 0; padding-left: 18px; color: #e9d5ff; }
+.trade-guide li { margin: 4px 0; }
+.trade-guide.trade-ready { border-color: rgba(74,222,128,.32); background: linear-gradient(135deg, rgba(22,101,52,.24), rgba(15,23,42,.70)); }
+.trade-guide.trade-ready h3 { color: #bbf7d0; }
+.trade-guide.trade-ready ol { color: #dcfce7; }
+.trade-desk[open] { box-shadow: 0 16px 42px rgba(0,0,0,.18); }
+.trade-columns strong { display: block; margin-bottom: 6px; color: #fef3c7; }
