@@ -44,6 +44,8 @@ def load_game(game_id: str) -> GameState | None:
     raw["buildings"] = {int(k): int(v) for k, v in raw.get("buildings", {}).items()}
     raw["mortgaged"] = {int(k): bool(v) for k, v in raw.get("mortgaged", {}).items()}
     raw.setdefault("auction", None)
+    raw.setdefault("debt", None)
+    raw.setdefault("free_parking_pot", 0)
     raw["last_roll"] = tuple(raw["last_roll"]) if raw.get("last_roll") else None
     raw.setdefault("doubles_in_row", 0)
     return GameState(**raw)

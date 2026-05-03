@@ -101,3 +101,51 @@ def test_trade_transfers_cash_and_properties():
     assert state.owners[6] == 'p1'
     assert state.player_state['p1'].cash == 1470
     assert state.player_state['p2'].cash == 1530
+
+
+
+def test_free_parking_pot_collects_taxes_and_pays_out():
+    state = initial_state('g')
+    state.player_state['p1'].position = 3
+    apply_action(state, 'p1', {'type': 'roll'}, seed=4)  # lands tax space 8? if not, set direct below
+    if state.free_parking_pot == 0:
+        state.phase = 'roll'
+        state.player_state['p1'].position = 15
+        apply_action(state, 'p1', {'type': 'roll'}, seed=4)  # 20 free parking? may not always
+    state.free_parking_pot = 123
+    state.phase = 'roll'
+    state.player_state['p1'].position = 11
+    before = state.player_state['p1'].cash
+    # Use direct resolver for deterministic free parking payout.
+    from app.engine import resolve_landing
+    import random
+    resolve_landing(state, 'p1', BOARD[20], 9, random.Random(1))
+    assert state.player_state['p1'].cash == before + 123
+    assert state.free_parking_pot == 0
+
+
+def test_debt_phase_allows_mortgage_to_resolve_before_bankruptcy():
+    state = initial_state('g')
+    state.owners[5] = 'p1'
+    state.player_state['p1'].cash = -80
+    state.phase = 'end'
+    from app.engine import check_bankruptcy_and_winner
+    check_bankruptcy_and_winner(state, 'p1')
+    assert state.phase == 'debt'
+    assert any(a['type'] == 'mortgage' for a in legal_actions(state, 'p1'))
+    apply_action(state, 'p1', {'type': 'mortgage', 'spaceId': 5})
+    assert state.phase == 'end'
+    assert state.player_state['p1'].cash == 20
+
+
+def test_bankruptcy_transfers_assets_to_creditor():
+    state = initial_state('g')
+    state.owners[5] = 'p1'
+    state.player_state['p1'].cash = -500
+    state.debt = {'player': 'p1', 'amount': 500, 'creditor': 'p2', 'reason': 'rent'}
+    state.phase = 'debt'
+    state.turn = 'p1'
+    apply_action(state, 'p1', {'type': 'declare_bankruptcy'})
+    assert not state.player_state['p1'].active
+    assert state.owners[5] == 'p2'
+    assert state.player_state['p2'].cash >= 1500

@@ -1,5 +1,5 @@
 export type Player = string;
-export type Phase = "roll" | "buy" | "auction" | "end" | "finished";
+export type Phase = "roll" | "buy" | "auction" | "debt" | "end" | "finished";
 
 export type Space = {
   id: number;
@@ -38,7 +38,9 @@ export type GameAction =
   | { type: "unmortgage"; spaceId: number }
   | { type: "bid_auction"; spaceId?: number; amount: number }
   | { type: "pass_auction"; spaceId?: number }
-  | { type: "trade"; toPlayer: Player; cashFrom?: number; cashTo?: number; propertiesFrom?: number[]; propertiesTo?: number[] };
+  | { type: "trade"; toPlayer: Player; cashFrom?: number; cashTo?: number; propertiesFrom?: number[]; propertiesTo?: number[] }
+  | { type: "resolve_debt" }
+  | { type: "declare_bankruptcy" };
 
 export type LegalAction = GameAction & { label?: string; spaceId?: number; amount?: number };
 
@@ -57,6 +59,8 @@ export type GameState = {
   buildings: Record<string, number>;
   mortgaged: Record<string, boolean>;
   auction: { spaceId: number; currentBid: number; highBidder: Player | null; active: Player[]; afterTurn: Player } | null;
+  debt: { player: Player; amount: number; creditor: Player | null; reason: string } | null;
+  freeParkingPot: number;
   lastRoll: [number, number] | null;
   doublesInRow: number;
   pendingSpace: number | null;

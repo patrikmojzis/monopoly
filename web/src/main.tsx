@@ -132,11 +132,13 @@ function App() {
       <div><span className="label">Phase</span><strong>{phaseLabel(state.phase)}</strong></div>
       <div><span className="label">Last roll</span><strong>{state.lastRoll ? `${state.lastRoll[0]} + ${state.lastRoll[1]}` : "—"}</strong></div>
       <div><span className="label">Doubles</span><strong>{state.doublesInRow || "—"}</strong></div>
+      <div><span className="label">Free Parking</span><strong>€{state.freeParkingPot}</strong></div>
       {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
     </section>
 
     <TurnBanner state={state} />
     <AuctionBanner state={state} />
+    <DebtBanner state={state} />
     <TablePulse state={state} />
     <PortfolioStrip state={state} />
     <RulesCard />
@@ -228,6 +230,8 @@ function RulesCard() {
       <li>Ak hráč nekúpi property, ide dražba medzi aktívnymi hráčmi.</li>
       <li>Majetok vieš založiť/odkúpiť späť; založený majetok neberie nájom.</li>
       <li>Trade desk umožní cash/property transfery bez budov na skupine.</li>
+      <li>Ak padneš do mínusu, príde debt phase: mortgage/sell/trade alebo bankrot.</li>
+      <li>Tax/jail/card poplatky idú do Free Parking potu; kto tam pristane, berie bank.</li>
       <li>Na mobile používaj spodný action dock a pan buttons pri doske.</li>
     </ul>
   </details>;
@@ -261,8 +265,19 @@ function AuctionBanner({ state }: { state: GameState }) {
   </section>;
 }
 
+
+function DebtBanner({ state }: { state: GameState }) {
+  if (state.phase !== "debt" || !state.debt) return null;
+  const creditor = state.debt.creditor;
+  return <section className="card debt-banner">
+    <div><span className="label">Debt crisis</span><strong>💥 {state.names[state.debt.player]} owes €{state.debt.amount}</strong></div>
+    <div><span className="label">Creditor</span><strong>{creditor ? state.names[creditor] : "Bank"}</strong></div>
+    <p>Mortgage, sell buildings, trade for cash, or declare bankruptcy.</p>
+  </section>;
+}
+
 function TradeDesk({ state, act, busy }: { state: GameState; act: (a: GameAction) => void; busy: boolean }) {
-  const canTrade = state.canAct && state.phase === "end" && state.legalActions.some((a) => a.type === "trade");
+  const canTrade = state.canAct && (state.phase === "end" || state.phase === "debt") && state.legalActions.some((a) => a.type === "trade");
   const partners = state.players.filter((p) => p !== state.viewer && state.playerState[p].active);
   const [toPlayer, setToPlayer] = useState(partners[0] ?? "");
   const [cashFrom, setCashFrom] = useState(0);
@@ -316,11 +331,11 @@ function dieFace(n: number) {
 }
 
 function phaseLabel(phase: string) {
-  return ({ roll: "hod", buy: "kúpa", end: "koniec ťahu", finished: "koniec hry" } as Record<string, string>)[phase] ?? phase;
+  return ({ roll: "hod", buy: "kúpa", auction: "dražba", debt: "dlh", end: "koniec ťahu", finished: "koniec hry" } as Record<string, string>)[phase] ?? phase;
 }
 
 function actionIcon(type: string) {
-  return ({ roll: "🎲", buy: "💸", skip_buy: "➡️", end_turn: "✅", pay_jail: "🚔", use_jail_card: "🎟️", build: "🏗️" } as Record<string, string>)[type] ?? "👉";
+  return ({ roll: "🎲", buy: "💸", skip_buy: "🔨", end_turn: "✅", pay_jail: "🚔", use_jail_card: "🎟️", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", debt: "💥", debt_resolved: "✅", declare_bankruptcy: "💀", unmortgage: "🔓", bid_auction: "🔨", pass_auction: "✋", trade: "🤝", resolve_debt: "✅" } as Record<string, string>)[type] ?? "👉";
 }
 
 function CurrentSpot({ state }: { state: GameState }) {
@@ -378,7 +393,7 @@ function BoardLegend() {
 }
 
 function eventIcon(type: string) {
-  return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", unmortgage: "🔓", auction: "🔨", auction_bid: "🔨", auction_pass: "✋", auction_win: "🏁", trade: "🤝", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
+  return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", debt: "💥", debt_resolved: "✅", declare_bankruptcy: "💀", unmortgage: "🔓", auction: "🔨", auction_bid: "🔨", auction_pass: "✋", auction_win: "🏁", trade: "🤝", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
 }
 
 function Board({ state, selectedId, onSelect }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void }) {

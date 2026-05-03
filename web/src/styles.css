@@ -349,3 +349,59 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .trade-cash, .trade-columns { grid-template-columns: 1fr; }
 }
 .action-sell_building { background: linear-gradient(135deg, #78350f, #92400e) !important; color: #fffbeb !important; }
+
+
+/* Iteration pass 16: phone-first density fix from Patrik screenshots + debt/free parking UI. */
+.debt-banner { display: grid; gap: 8px; margin-bottom: 14px; border-color: rgba(248,113,113,.4); background: linear-gradient(135deg, rgba(127,29,29,.66), rgba(15,23,42,.94)); }
+.debt-banner strong { color: #fecaca; }
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .app-shell { padding: 14px 10px 112px; }
+  header { gap: 8px; margin-bottom: 10px; }
+  header h1 { font-size: clamp(2.4rem, 13vw, 3.4rem); line-height: .92; }
+  .header-actions { gap: 6px; }
+  .header-actions button { padding: 12px 16px; border-radius: 18px; }
+  .status-card { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; padding: 10px; margin-bottom: 10px; }
+  .status-card > div { padding: 12px 12px; border-radius: 16px; min-height: auto; }
+  .status-card .label { font-size: .68rem; }
+  .status-card strong { font-size: 1.05rem; }
+  .turn-banner { padding: 12px; margin-bottom: 10px; }
+  .turn-banner .dice { transform: scale(.75); transform-origin: left center; }
+  .turn-banner h2 { font-size: 1.45rem; }
+  .turn-banner p { font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-pulse, .portfolio-strip, .rules-card, .group-tracker, .board-legend { margin-bottom: 10px; }
+  .table-pulse { padding: 10px; }
+  .portfolio-strip { grid-template-columns: repeat(2, minmax(0,1fr)); padding: 8px; }
+  .portfolio-mini { padding: 8px; }
+  .rules-card { padding: 10px 12px; }
+  .current-spot { position: static !important; padding: 12px; margin-bottom: 10px; }
+  .current-spot .spot-main { gap: 10px; }
+  .spot-icon { width: 52px; height: 52px; font-size: 1.7rem; }
+  .current-spot h2 { font-size: 1.8rem; }
+  .spot-stats { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .spot-stats span { padding: 10px; }
+  .board-wrap { gap: 10px; }
+  .board-controls { position: static !important; width: 100%; display: grid; grid-template-columns: repeat(3,1fr); padding: 6px; margin: 0 0 6px; }
+  .board-controls button { min-height: 34px; padding: 6px 8px; font-size: .86rem; }
+  .deed-card { position: static !important; margin-bottom: 10px; }
+  .deed-body { padding: 14px; }
+  .deed-card h2 { font-size: 2rem; }
+  .deed-grid { grid-template-columns: 1fr; gap: 8px; }
+  .group-grid { gap: 6px; }
+  .group-chip { padding: 8px; min-height: 44px; }
+  .board-legend { overflow-x: auto; flex-wrap: nowrap; justify-content: flex-start; padding: 8px; }
+  .board-legend span { white-space: nowrap; }
+  aside { gap: 10px; }
+  .player { padding: 14px; }
+  .player h2 { font-size: 1.35rem; }
+  .money { font-size: 2rem; }
+  .player p { margin: 4px 0; font-size: .98rem; }
+  .owned span { font-size: .78rem; padding: 5px 8px; }
+  .mobile-action-dock { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); padding: 8px; gap: 6px; border-radius: 16px; }
+  .dock-summary { grid-template-columns: auto 1fr; gap: 8px; font-size: .82rem; }
+  .dock-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dock-buttons { grid-template-columns: 1fr auto; gap: 6px; }
+  .dock-buttons .action-btn { min-height: 44px; font-size: .92rem; }
+  .dock-buttons .ghost { min-height: 44px; width: 54px; overflow: hidden; white-space: nowrap; color: transparent; position: relative; }
+  .dock-buttons .ghost::after { content: "↑"; color: #e2e8f0; position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.2rem; }
+}

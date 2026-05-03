@@ -78,6 +78,8 @@ def public_state(state, viewer: str) -> dict:
         "buildings": state.buildings,
         "mortgaged": state.mortgaged,
         "auction": state.auction,
+        "debt": state.debt,
+        "freeParkingPot": state.free_parking_pot,
         "lastRoll": state.last_roll,
         "doublesInRow": state.doubles_in_row,
         "pendingSpace": state.pending_space,
