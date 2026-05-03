@@ -853,3 +853,23 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
 
 .player-count-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: -4px 0 14px; }
 .player-count-actions .ghost { min-height: 38px; padding: 0 12px; border-radius: 999px; }
+
+/* Board focus + dice/audio interaction polish. */
+.hud-pill.dice.dice-rolling { animation: diceHudShake .42s cubic-bezier(.2,.9,.2,1); }
+.hud-pill.dice.dice-rolling b { display: inline-block; animation: diceFacesTumble .42s steps(5, end); }
+.game-mode-shell.board-focus { grid-template-rows: 34px 0 minmax(0,1fr) auto; }
+.game-mode-shell.board-focus .game-hud { height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
+.game-mode-shell.board-focus .game-board-stage .seat-rail { opacity: 0; pointer-events: none; transform: translateY(-16px); }
+.game-mode-shell.board-focus .floating-deed { display: none; }
+.game-mode-shell.board-focus .board-scroll { padding: 18px 12px 88px; place-items: center; }
+.game-mode-shell.board-focus .classic-board { width: min(calc(100dvh - 150px), calc(100vw - 36px), 1040px); height: min(calc(100dvh - 150px), calc(100vw - 36px), 1040px); min-width: min(980px, calc(100vw - 36px)); min-height: min(980px, calc(100vw - 36px)); }
+.game-mode-shell.board-focus .board-controls { bottom: 10px; left: 50%; right: auto; transform: translateX(-50%); }
+.game-mode-shell.board-focus .game-action-dock { min-height: 58px; grid-template-columns: minmax(180px,1fr) auto; }
+.game-mode-shell.board-focus .dock-copy small { display: none; }
+@keyframes diceHudShake { 0% { transform: translateY(0) rotate(0deg); } 20% { transform: translateY(-2px) rotate(-4deg); } 45% { transform: translateY(2px) rotate(5deg); } 70% { transform: translateY(-1px) rotate(-2deg); } 100% { transform: translateY(0) rotate(0deg); } }
+@keyframes diceFacesTumble { 0% { transform: rotate(0deg) scale(1); filter: blur(0); } 25% { transform: rotate(38deg) scale(1.08); filter: blur(1px); } 50% { transform: rotate(-42deg) scale(1.14); } 75% { transform: rotate(24deg) scale(1.06); filter: blur(.5px); } 100% { transform: rotate(0) scale(1); filter: blur(0); } }
+@media (max-width: 760px) {
+  .game-mode-shell.board-focus { grid-template-rows: 32px 0 minmax(0,1fr) auto; }
+  .game-mode-shell.board-focus .classic-board { width: 900px; height: 900px; min-width: 900px; min-height: 900px; }
+  .game-mode-shell.board-focus .board-scroll { place-items: start; padding: 20px 8px 92px; }
+}

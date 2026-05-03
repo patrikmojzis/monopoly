@@ -31,6 +31,9 @@ function App() {
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [autoBots, setAutoBots] = useState(() => localStorage.getItem("panda-capital-autobots") === "1");
   const [openDrawer, setOpenDrawer] = useState<DrawerName | null>(null);
+  const [boardFocus, setBoardFocus] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => localStorage.getItem("panda-capital-sound") === "1");
+  const [rollingDice, setRollingDice] = useState(false);
 
   async function start() {
     setBusy(true);
@@ -63,6 +66,8 @@ function App() {
 
   async function act(action: GameAction) {
     if (!gameId || !token) return;
+    if (action.type === "roll") setRollingDice(true);
+    playGameSound(soundOn, action.type);
     setBusy(true);
     setError(null);
     try {
@@ -71,6 +76,7 @@ function App() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
+      if (action.type === "roll") window.setTimeout(() => setRollingDice(false), 450);
     }
   }
 
@@ -98,6 +104,7 @@ function App() {
     return () => window.clearInterval(id);
   }, [gameId, token, state?.phase]);
   useEffect(() => { localStorage.setItem("panda-capital-autobots", autoBots ? "1" : "0"); }, [autoBots]);
+  useEffect(() => { localStorage.setItem("panda-capital-sound", soundOn ? "1" : "0"); }, [soundOn]);
   useEffect(() => {
     if (!autoBots || !state || busy || state.phase === "finished" || state.turn === state.viewer || !isNpcSeat(state, state.turn)) return;
     const id = window.setTimeout(() => { runBot(); }, 900);
@@ -132,9 +139,9 @@ function App() {
     </main>;
   }
 
-  return <main className="game-mode-shell">
-    <GameTopChrome state={state} busy={busy} refresh={refresh} start={start} setOpenDrawer={setOpenDrawer} />
-    <GameHud state={state} />
+  return <main className={`game-mode-shell ${boardFocus ? "board-focus" : ""}`}>
+    <GameTopChrome state={state} busy={busy} refresh={refresh} start={start} setOpenDrawer={setOpenDrawer} boardFocus={boardFocus} setBoardFocus={setBoardFocus} soundOn={soundOn} setSoundOn={setSoundOn} />
+    <GameHud state={state} rollingDice={rollingDice} />
 
     <section className="game-board-stage">
       <SeatRail state={state} />
@@ -154,11 +161,13 @@ function App() {
     <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} selectedSpaceId={selectedSpaceId} setSelectedSpaceId={setSelectedSpaceId} act={act} busy={busy} />
   </main>;
 }
-function GameTopChrome({ state, busy, refresh, start, setOpenDrawer }: { state: GameState; busy: boolean; refresh: () => void; start: () => void; setOpenDrawer: (drawer: DrawerName | null) => void }) {
+function GameTopChrome({ state, busy, refresh, start, setOpenDrawer, boardFocus, setBoardFocus, soundOn, setSoundOn }: { state: GameState; busy: boolean; refresh: () => void; start: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; boardFocus: boolean; setBoardFocus: (value: boolean) => void; soundOn: boolean; setSoundOn: (value: boolean) => void }) {
   return <header className="game-top-chrome">
     <button className="brand-chip" onClick={() => setOpenDrawer("menu")} aria-label="Open game menu"><span>🎩</span><b>Panda Capital</b></button>
     <div className="chrome-center"><span>Game {state.id}</span><i>v{state.version}</i></div>
     <nav className="chrome-actions">
+      <button className="ghost" onClick={() => setBoardFocus(!boardFocus)}>{boardFocus ? "HUD" : "Board"}</button>
+      <button className="ghost" onClick={() => setSoundOn(!soundOn)}>{soundOn ? "🔊" : "🔇"}</button>
       <button className="ghost" onClick={refresh} disabled={busy}>↻</button>
       <button className="ghost" onClick={() => setOpenDrawer("log")}>Log</button>
       <button className="ghost" onClick={() => setOpenDrawer("menu")}>☰</button>
@@ -166,12 +175,12 @@ function GameTopChrome({ state, busy, refresh, start, setOpenDrawer }: { state: 
   </header>;
 }
 
-function GameHud({ state }: { state: GameState }) {
+function GameHud({ state, rollingDice }: { state: GameState; rollingDice: boolean }) {
   const viewerInfo = state.playerState[state.viewer];
   return <section className="game-hud">
     <div className="hud-pill viewer"><span>{emojiFor(state, state.viewer)}</span><b>{state.names[state.viewer]}</b><strong>€{viewerInfo.cash}</strong></div>
     <div className="hud-pill turn"><span>{emojiFor(state, state.turn)}</span><b>{state.names[state.turn]}</b><strong>{phaseLabel(state.phase)}</strong></div>
-    <div key={`dice-${state.version}-${state.lastRoll?.join("-") ?? "none"}`} className="hud-pill dice dice-pop"><b>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b><strong>{state.lastRoll ? `${state.lastRoll[0]}+${state.lastRoll[1]}` : "roll"}</strong></div>
+    <div key={`dice-${state.version}-${state.lastRoll?.join("-") ?? "none"}`} className={`hud-pill dice dice-pop ${rollingDice ? "dice-rolling" : ""}`}><b>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b><strong>{state.lastRoll ? `${state.lastRoll[0]}+${state.lastRoll[1]}` : "roll"}</strong></div>
     <div className="hud-pill pot"><b>🅿️</b><strong>€{state.freeParkingPot}</strong></div>
   </section>;
 }
@@ -222,6 +231,27 @@ function GameDrawer({ open, onClose, state, created, error, refresh, start, auto
       </div>}
     </aside>
   </div>;
+}
+
+function playGameSound(enabled: boolean, type: string) {
+  if (!enabled) return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const freq = type === "roll" ? 140 : type === "buy" ? 520 : type.includes("trade") ? 420 : type.includes("debt") ? 90 : 260;
+    o.type = type === "roll" ? "sawtooth" : "triangle";
+    o.frequency.setValueAtTime(freq, now);
+    if (type === "roll") o.frequency.exponentialRampToValueAtTime(52, now + .28);
+    g.gain.setValueAtTime(.0001, now);
+    g.gain.exponentialRampToValueAtTime(.075, now + .018);
+    g.gain.exponentialRampToValueAtTime(.0001, now + (type === "roll" ? .32 : .16));
+    o.connect(g).connect(ctx.destination);
+    o.start(now);
+    o.stop(now + .36);
+  } catch { /* sound is bonus, never break gameplay */ }
 }
 
 function GameEffects({ state }: { state: GameState }) {

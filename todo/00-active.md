@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/proposal-side browser QA passed; Phase H deployed/smoke OK/mobile viewport certification limited by QA tooling; Phase I deployed/prod-smoked; QA found readability/default-player issues; patch 23a9002 deployed and quick visual QA pending.
+Status: Phase A-I deployed/QA-smoked after 23a9002; Patrik requested dice animation, sounds, bigger board/fullscreen focus, moving-token animation, and richer setup/token selection. Board focus + dice HUD animation + basic sound toggle implemented locally; tests/build passed; deploy next.
 
 ## Rules for Clawd
 
@@ -28,11 +28,11 @@ Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/pr
 
 ## Next action
 
-Wait for quick visual QA on 23a9002. If green, run Phase J replay-ready checklist and create a fresh 2-player replay table/link; if not, patch remaining readability/default-player issues first.
+Commit/deploy board-focus/dice/sound patch, QA it, then continue with moving-token animation and richer setup/token picker before fresh replay.
 
 ## Last known deployed commit
 
-- `23a9002` — default table fixed to Patrik+Clawd, add/remove player controls, board text/owner/deed contrast readability patch; deploy smoke OK.
+- `23a9002` — default table fixed to Patrik+Clawd, add/remove player controls, board text/owner/deed contrast readability patch; quick visual QA passed.
 
 ## Current critique of deployed commit
 
