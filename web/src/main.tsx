@@ -93,6 +93,7 @@ function App() {
           <p className="eyebrow">Panda Capital v2</p>
           <h1>Classic property-board chaos, bearer-token style.</h1>
           <p>Forty spaces, 2–4 players, railroads, utilities, Jail, Chance, Community Cache, houses/hotels-lite — original skin, Monopoly-ish couch energy.</p>
+          <div className="hero-badges"><span>🎲 Bearer-token API</span><span>🏘️ 40 spaces</span><span>🌙 4-player chaos</span></div>
           <div className="name-grid">
             {names.map((name, i) => <label key={i}>Player {i + 1}<input value={name} onChange={(e) => setNames(names.map((n, idx) => idx === i ? e.target.value : n))} /></label>)}
           </div>
@@ -108,7 +109,7 @@ function App() {
     <header>
       <div>
         <p className="eyebrow">Game {state.id} · v{state.version} · viewer {state.names[state.viewer] ?? state.viewer}</p>
-        <h1>Panda Capital</h1>
+        <h1><span>Panda</span> Capital</h1>
       </div>
       <div className="header-actions">
         <button className="ghost" onClick={refresh} disabled={busy}>Refresh</button>
@@ -163,6 +164,7 @@ function Board({ state }: { state: GameState }) {
       <p className="eyebrow">Panda Capital</p>
       <h2>Classic Board</h2>
       <p>Pass GO: €200 · Jail on 10 · Go to Jail on 30 · Build after owning a color set.</p>
+      <div className="dice-mark">⚂ ⚄</div>
     </div>
     {state.board.map((space) => <Tile key={space.id} space={space} state={state} />)}
   </div>;
@@ -182,7 +184,7 @@ function Tile({ space, state }: { space: Space; state: GameState }) {
   return <div className={`tile classic-tile ${space.kind}`} style={tileStyle(space.id)}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span>
-    <strong>{space.name}</strong>
+    <strong title={space.name}>{space.name}</strong>
     {space.price > 0 && <small>€{space.price} · rent €{space.currentRent || space.rent || "dice"}</small>}
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
     {owner && <em>{state.names[owner]}</em>}
