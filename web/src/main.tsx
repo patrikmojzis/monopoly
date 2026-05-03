@@ -129,7 +129,7 @@ function App() {
       <div className="header-actions">
         <button className="ghost" onClick={refresh} disabled={busy}>Refresh</button>
         <button className="ghost" onClick={start} disabled={busy}>New table</button>
-        <button className={`ghost ${autoBots ? "lit" : ""}`} onClick={() => setAutoBots(!autoBots)} disabled={busy}>{autoBots ? "🤖 Auto" : "Bot manual"}</button>
+        <button className={`ghost ${autoBots ? "lit" : ""}`} onClick={() => setAutoBots(!autoBots)} disabled={busy}>{autoBots ? "🤖 Auto-play ON" : "🤖 Auto-play OFF"}</button>
       </div>
     </header>
 
@@ -144,24 +144,31 @@ function App() {
       {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
     </section>
 
-    <TurnBanner state={state} />
-    <TurnAssist state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
-    <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
-    <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
-    <TablePulse state={state} />
-    <PortfolioStrip state={state} />
-    <RulesCard />
-    <CurrentSpot state={state} />
+    <section className="tabletop-stage">
+      <SeatRail state={state} />
+      <TurnBanner state={state} />
+      <TurnAssist state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
+      <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
+      <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
+      <div className="board-table">
+        <div className="board-wrap"><BoardControls /><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} /></div>
+        <aside className="table-side">
+          {selectedSpace && <DeedCard state={state} space={selectedSpace} />}
+          <DeedHand state={state} />
+          <TablePulse state={state} />
+        </aside>
+      </div>
+    </section>
 
-    <section className="layout classic-layout">
-      <div className="board-wrap"><BoardControls /><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<GroupTracker state={state} /><BoardLegend /></div>
+    <section className="lower-panels">
+      <details className="card collapsible-panel"><summary>Player details</summary>{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</details>
+      <details className="card collapsible-panel"><summary>Rules & groups</summary><RulesCard /><GroupTracker state={state} /><BoardLegend /></details>
       <aside>
-        {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
           <h2>Legal actions</h2>
           {buttonActions.length ? buttonActions.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
           <TradeDesk state={state} act={act} busy={busy} />
-          {state.turn !== state.viewer && state.phase !== "finished" && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} play</button>}
+          {state.turn !== state.viewer && state.phase !== "finished" && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Play bot turn</button>}
           {error && <p className="error">{error}</p>}
         </div>
       </aside>
@@ -170,6 +177,40 @@ function App() {
     <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
     <MobileActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
   </main>;
+}
+
+function SeatRail({ state }: { state: GameState }) {
+  return <section className="seat-rail">
+    {state.players.map((p) => {
+      const info = state.playerState[p];
+      const owned = Object.values(state.owners).filter((o) => o === p).length;
+      return <div key={p} className={`seat-card ${state.turn === p ? "active" : ""} ${state.viewer === p ? "viewer" : ""}`}>
+        <span className="seat-token">{emojiFor(state, p)}</span>
+        <div><strong>{state.names[p]}</strong><small>{state.board[info.position].name}</small></div>
+        <b>€{info.cash}</b>
+        <i>{owned} deeds</i>
+      </div>;
+    })}
+  </section>;
+}
+
+function DeedHand({ state }: { state: GameState }) {
+  const owned = Object.entries(state.owners).filter(([, owner]) => owner === state.viewer).map(([id]) => state.board[Number(id)]);
+  return <section className="card deed-hand">
+    <div className="section-title"><h2>Your deed cards</h2><span>{owned.length}</span></div>
+    <div className="deed-hand-grid">
+      {owned.length ? owned.map((space) => {
+        const buildings = state.buildings[String(space.id)] ?? 0;
+        const mortgaged = !!state.mortgaged[String(space.id)];
+        return <article key={space.id} className={`mini-deed ${mortgaged ? "mortgaged" : ""}`}>
+          <b style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "#94a3b8" }} />
+          <strong>{space.name}</strong>
+          <small>{mortgaged ? "mortgaged · rent €0" : `rent €${space.currentRent || space.rent || "dice"}`}</small>
+          {buildings > 0 && <em>{buildings === 5 ? "🏨 hotel" : "🏠".repeat(buildings)}</em>}
+        </article>;
+      }) : <p className="muted">No deeds yet. Kapitalizmus ešte len bootuje.</p>}
+    </div>
+  </section>;
 }
 
 function MobileActionDock({ state, legal, busy, act, runBot, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; autoBots: boolean }) {
@@ -430,10 +471,8 @@ function eventIcon(type: string) {
 function Board({ state, selectedId, onSelect }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void }) {
   return <div className="classic-board card">
     <div className="board-center">
-      <p className="eyebrow">Panda Capital</p>
-      <h2>Classic Board</h2>
-      <p>Pass GO: €200 · Jail on 10 · Go to Jail on 30 · Build after owning a color set.</p>
-      <div className="dice-mark">⚂ ⚄</div>
+      <img src="/panda-capital-board-center.png" alt="Panda Capital city board art" />
+      <div className="board-logo"><p className="eyebrow">Panda Capital</p><h2>City Board</h2><p>Pass GO €200 · Jail · Auctions · Trades</p></div>
     </div>
     {state.board.map((space) => <Tile key={space.id} space={space} state={state} selected={selectedId === space.id} onSelect={onSelect} />)}
   </div>;
@@ -458,7 +497,9 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
     {space.price > 0 && <small>€{space.price} · {mortgaged ? "mortgaged" : `rent €${space.currentRent || space.rent || "dice"}`}</small>}
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
     {mortgaged && <small className="mortgage-badge">MORTGAGED</small>}
-    {owner && <em>{state.names[owner]}</em>}
+    {owner && <em className={`owner-flag owner-${owner}`}>{emojiFor(state, owner)} {state.names[owner]}</em>}
+    {owner && <span className={`owner-edge owner-${owner}`} />}
+    {buildings > 0 && <span className="building-stack">{buildings === 5 ? "🏨" : Array.from({length: buildings}, (_, i) => <b key={i}>🏠</b>)}</span>}
     <div className="tokens">{occupants.map((p) => <span key={p}>{emojiFor(state, p)}</span>)}</div>
   </button>;
 }
