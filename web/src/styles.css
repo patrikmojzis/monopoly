@@ -211,3 +211,24 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .invite-item { gap: 8px; }
   .copy-btn { min-height: 42px; }
 }
+
+/* Iteration pass 2: dice banner and game-feel controls. */
+.turn-banner { margin-bottom: 14px; display: flex; gap: 14px; align-items: center; border-color: rgba(250,204,21,.26); background: linear-gradient(135deg, rgba(88,28,135,.42), rgba(15,23,42,.86)); }
+.turn-banner.your-turn { border-color: rgba(250,204,21,.5); box-shadow: 0 0 0 1px rgba(250,204,21,.12), 0 18px 60px rgba(250,204,21,.08); }
+.dice-face { display: flex; gap: 7px; font-size: 2.3rem; line-height: 1; min-width: 94px; justify-content: center; }
+.dice-face span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: #111827; background: #fff8e8; box-shadow: inset 0 -3px 0 rgba(0,0,0,.14), 0 8px 22px rgba(0,0,0,.32); }
+.turn-banner h2 { margin: 0; color: #fef3c7; font-family: Georgia, "Times New Roman", serif; }
+.turn-banner p { margin: 3px 0; color: #cbd5e1; }
+.action-btn { display: flex; align-items: center; justify-content: center; gap: 9px; }
+.action-btn span { font-size: 1.15rem; }
+.action-roll { font-size: 1.05rem; background: linear-gradient(135deg, #facc15, #fb923c) !important; color: #111827 !important; }
+.action-buy, .action-build { background: linear-gradient(135deg, #22c55e, #84cc16) !important; color: #052e16 !important; }
+.action-skip_buy, .action-end_turn { background: rgba(148,163,184,.14) !important; color: #e2e8f0 !important; border: 1px solid rgba(226,232,240,.14); }
+.bot-button { border-color: rgba(168,85,247,.32) !important; color: #e9d5ff !important; }
+@media (max-width: 760px) {
+  .turn-banner { align-items: stretch; flex-direction: column; }
+  .dice-face { justify-content: flex-start; min-width: 0; }
+  .actions { box-shadow: 0 -16px 46px rgba(2,6,23,.44); }
+  .actions h2 { font-size: 1rem; }
+  .action-btn { min-height: 52px; font-size: .96rem; }
+}

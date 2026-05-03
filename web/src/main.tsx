@@ -83,6 +83,11 @@ function App() {
   }
 
   useEffect(() => { if (gameId && token) refresh(); }, []);
+  useEffect(() => {
+    if (!gameId || !token || state?.phase === "finished") return;
+    const id = window.setInterval(() => { refresh(); }, 8000);
+    return () => window.clearInterval(id);
+  }, [gameId, token, state?.phase]);
 
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
 
@@ -121,12 +126,13 @@ function App() {
 
     <section className="status-card">
       <div><span className="label">Turn</span><strong>{emojiFor(state, state.turn)} {state.names[state.turn]}</strong></div>
-      <div><span className="label">Phase</span><strong>{state.phase}</strong></div>
+      <div><span className="label">Phase</span><strong>{phaseLabel(state.phase)}</strong></div>
       <div><span className="label">Last roll</span><strong>{state.lastRoll ? `${state.lastRoll[0]} + ${state.lastRoll[1]}` : "—"}</strong></div>
       <div><span className="label">Doubles</span><strong>{state.doublesInRow || "—"}</strong></div>
       {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
     </section>
 
+    <TurnBanner state={state} />
     <CurrentSpot state={state} />
 
     <section className="layout classic-layout">
@@ -135,8 +141,8 @@ function App() {
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
           <h2>Legal actions</h2>
-          {legal.length ? legal.map((a, idx) => <button key={`${a.type}-${a.spaceId ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
-          {state.turn !== "p1" && state.phase !== "finished" && <button className="ghost" onClick={runBot} disabled={busy}>🤖 Let current bot play</button>}
+          {legal.length ? legal.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
+          {state.turn !== state.viewer && state.phase !== "finished" && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} play</button>}
           {error && <p className="error">{error}</p>}
         </div>
       </aside>
@@ -169,6 +175,31 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
       <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code><button className="copy-btn" onClick={() => copy("Spectator", created.spectatorUrl)}>Copy spectator</button></div>
     </div>
   </section>;
+}
+
+function TurnBanner({ state }: { state: GameState }) {
+  const latest = state.history[state.history.length - 1];
+  const viewerTurn = state.turn === state.viewer && state.canAct && state.phase !== "finished";
+  return <section className={`turn-banner card ${viewerTurn ? "your-turn" : "waiting"}`}>
+    <div className="dice-face">{state.lastRoll ? <><span>{dieFace(state.lastRoll[0])}</span><span>{dieFace(state.lastRoll[1])}</span></> : <><span>⚂</span><span>⚄</span></>}</div>
+    <div>
+      <p className="eyebrow">{viewerTurn ? "Your move" : state.phase === "finished" ? "Game over" : "Table update"}</p>
+      <h2>{viewerTurn ? `${emojiFor(state, state.viewer)} ${state.names[state.viewer]}, ideš` : `${emojiFor(state, state.turn)} ${state.names[state.turn]} je na rade`}</h2>
+      <p>{latest?.message ?? "Čakáme na prvý hod."}</p>
+    </div>
+  </section>;
+}
+
+function dieFace(n: number) {
+  return ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][Math.max(1, Math.min(6, n)) - 1] ?? "🎲";
+}
+
+function phaseLabel(phase: string) {
+  return ({ roll: "hod", buy: "kúpa", end: "koniec ťahu", finished: "koniec hry" } as Record<string, string>)[phase] ?? phase;
+}
+
+function actionIcon(type: string) {
+  return ({ roll: "🎲", buy: "💸", skip_buy: "➡️", end_turn: "✅", pay_jail: "🚔", use_jail_card: "🎟️", build: "🏗️" } as Record<string, string>)[type] ?? "👉";
 }
 
 function CurrentSpot({ state }: { state: GameState }) {
