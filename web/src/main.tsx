@@ -127,8 +127,10 @@ function App() {
       {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
     </section>
 
+    <CurrentSpot state={state} />
+
     <section className="layout classic-layout">
-      <Board state={state} />
+      <div className="board-wrap"><Board state={state} /><BoardLegend /></div>
       <aside>
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
@@ -140,22 +142,71 @@ function App() {
       </aside>
     </section>
 
-    <section className="card history"><h2>Log</h2>{[...state.history].reverse().map((h, i) => <p key={i}>{h.message ?? JSON.stringify(h)}</p>)}</section>
+    <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
   </main>;
 }
 
 function InvitePanel({ created, state }: { created: CreateGameResponse; state: GameState }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  async function copy(label: string, url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(label);
+      window.setTimeout(() => setCopied(null), 1300);
+    } catch {
+      setCopied("Manual copy");
+    }
+  }
   return <section className="card invites">
-    <h2>Invite links / API tokens</h2>
-    <p className="muted">Share the browser link with humans. Agents can use the bearer config from the same player.</p>
+    <div className="section-title"><h2>Invite links</h2>{copied && <span className="copied">Copied: {copied}</span>}</div>
+    <p className="muted">Share browser links with humans. Agents use the same seat token as bearer auth.</p>
     <div className="invite-grid">
       {state.players.map((p) => <div key={p} className="invite-item">
         <strong>{emojiFor(state, p)} {state.names[p]}</strong>
         <code>{created.playerUrls[p]}</code>
+        <button className="copy-btn" onClick={() => copy(state.names[p], created.playerUrls[p])}>Copy invite</button>
       </div>)}
-      <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code></div>
+      <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code><button className="copy-btn" onClick={() => copy("Spectator", created.spectatorUrl)}>Copy spectator</button></div>
     </div>
   </section>;
+}
+
+function CurrentSpot({ state }: { state: GameState }) {
+  const player = state.turn;
+  const ps = state.playerState[player];
+  const space = state.board[state.pendingSpace ?? ps.position];
+  const owner = state.owners[String(space.id)];
+  const buildings = state.buildings[String(space.id)] ?? 0;
+  return <section className="card current-spot">
+    <div className="spot-main">
+      <span className="spot-icon">{space.kind === "property" ? "🏠" : space.kind === "railroad" ? "🚋" : space.kind === "utility" ? "⚡" : space.kind === "chance" ? "❓" : space.kind === "chest" ? "🎁" : space.kind === "jail" || space.kind === "go_to_jail" ? "🚔" : "🎲"}</span>
+      <div>
+        <p className="eyebrow">Current space</p>
+        <h2>{space.name}</h2>
+        <p>{emojiFor(state, player)} {state.names[player]} · {space.kind.replace(/_/g, " ")}</p>
+      </div>
+    </div>
+    <div className="spot-stats">
+      {space.price > 0 && <span>Price <strong>€{space.price}</strong></span>}
+      {space.isBuyable && <span>Rent <strong>€{space.currentRent || space.rent || "dice"}</strong></span>}
+      {owner && <span>Owner <strong>{emojiFor(state, owner)} {state.names[owner]}</strong></span>}
+      {buildings > 0 && <span>Build <strong>{buildings === 5 ? "🏨 hotel" : `${buildings}× 🏠`}</strong></span>}
+    </div>
+  </section>;
+}
+
+function BoardLegend() {
+  return <div className="card board-legend">
+    <span><b style={{ background: COLOR.brown }} /> lacné štvrte</span>
+    <span><b style={{ background: COLOR.red }} /> stred boardu</span>
+    <span><b style={{ background: COLOR.green }} /> drahé štvrte</span>
+    <span><b style={{ background: COLOR.railroad }} /> rails</span>
+    <span><b style={{ background: COLOR.utility }} /> utility</span>
+  </div>;
+}
+
+function eventIcon(type: string) {
+  return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
 }
 
 function Board({ state }: { state: GameState }) {

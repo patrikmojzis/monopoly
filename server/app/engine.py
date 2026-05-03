@@ -74,20 +74,20 @@ BUYABLE = {"property", "railroad", "utility"}
 PROPERTY_COLORS = {s.color for s in BOARD if s.kind == "property"}
 
 CHANCE_CARDS: tuple[tuple[str, int | None], ...] = (
-    ("Advance to GO. Collect €200.", 0),
-    ("A demo lands. Collect €150.", 150),
-    ("Speeding fine from the deploy police. Pay €50.", -50),
-    ("Go directly to Jail. Do not pass GO.", -9999),
-    ("Move back 3 spaces. Classic cursed card.", -3),
-    ("Consulting invoice paid. Collect €100.", 100),
+    ("Choď na Štart a zober €200.", 0),
+    ("Demo vyšlo. Zober €150.", 150),
+    ("Pokuta od deploy polície. Zaplať €50.", -50),
+    ("Choď rovno do väzenia. Štart obídeš.", -9999),
+    ("Choď späť o 3 políčka. Klasická cursed karta.", -3),
+    ("Konzultačná faktúra zaplatená. Zober €100.", 100),
 )
 CHEST_CARDS: tuple[tuple[str, int | None], ...] = (
-    ("Old cloud credits refunded. Collect €100.", 100),
-    ("Server bill surprise. Pay €100.", -100),
-    ("Birthday money from the bank. Collect €50.", 50),
-    ("Emergency maintenance. Pay €50.", -50),
-    ("Get out of Jail free-ish. Collect a rate-limit pass.", None),
-    ("Bug bounty. Collect €200.", 200),
+    ("Staré cloud kredity sa vrátili. Zober €100.", 100),
+    ("Prekvapenie zo server billu. Zaplať €100.", -100),
+    ("Narodeninový cash od banky. Zober €50.", 50),
+    ("Urgentný maintenance. Zaplať €50.", -50),
+    ("Dostaň sa z väzenia free-ish. Získaš rate-limit pass.", None),
+    ("Bug bounty. Zober €200.", 200),
 )
 
 
@@ -134,7 +134,7 @@ def initial_state(game_id: str, *, tokens: dict[str, str] | None = None, names: 
         player_state={p: PlayerState() for p in players},
         tokens=tokens or {},
     )
-    state.history.append({"version": 0, "type": "start", "message": f"Panda Capital started: {', '.join(clean_names)}. {clean_names[0]} moves first."})
+    state.history.append({"version": 0, "type": "start", "message": f"Panda Capital štartuje: {', '.join(clean_names)}. {clean_names[0]} ide prvý."})
     return state
 
 
@@ -181,21 +181,21 @@ def legal_actions(state: GameState, player: Player) -> list[dict]:
         return []
     ps = state.player_state[player]
     if state.phase == "roll":
-        actions = [{"type": "roll", "label": "Roll dice"}]
+        actions = [{"type": "roll", "label": "Hodiť kockami"}]
         if ps.jail_turns > 0:
             if ps.cash >= 50:
-                actions.insert(0, {"type": "pay_jail", "label": "Pay €50 to leave jail"})
+                actions.insert(0, {"type": "pay_jail", "label": "Zaplať €50 a vypadni z väzenia"})
             if ps.jail_cards > 0:
-                actions.insert(0, {"type": "use_jail_card", "label": "Use rate-limit pass"})
+                actions.insert(0, {"type": "use_jail_card", "label": "Použi rate-limit pass"})
         return actions
     if state.phase == "buy" and state.pending_space is not None:
         space = BOARD[state.pending_space]
-        actions = [{"type": "skip_buy", "spaceId": space.id, "label": f"Skip {space.name}"}]
+        actions = [{"type": "skip_buy", "spaceId": space.id, "label": f"Nekúpiť {space.name}"}]
         if ps.cash >= space.price:
-            actions.insert(0, {"type": "buy", "spaceId": space.id, "label": f"Buy {space.name} for €{space.price}"})
+            actions.insert(0, {"type": "buy", "spaceId": space.id, "label": f"Kúpiť {space.name} za €{space.price}"})
         return actions
     if state.phase == "end":
-        actions = [{"type": "end_turn", "label": "End turn"}]
+        actions = [{"type": "end_turn", "label": "Ukončiť ťah"}]
         for i in range(len(BOARD)):
             if can_build_on(state, player, i):
                 b = state.buildings.get(i, 0)
@@ -249,7 +249,7 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         ps = state.player_state[player]
         ps.cash -= 50
         ps.jail_turns = 0
-        state.history.append(event(state, "jail", player, f"{state.names[player]} paid €50 to leave Jail."))
+        state.history.append(event(state, "jail", player, f"{state.names[player]} zaplatil €50 a odišiel z väzenia."))
         check_bankruptcy_and_winner(state, player)
         return bump(state)
 
@@ -257,7 +257,7 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         ps = state.player_state[player]
         ps.jail_cards -= 1
         ps.jail_turns = 0
-        state.history.append(event(state, "jail_card", player, f"{state.names[player]} used a rate-limit pass to leave Jail."))
+        state.history.append(event(state, "jail_card", player, f"{state.names[player]} použil rate-limit pass a odišiel z väzenia."))
         return bump(state)
 
     if action_type == "roll":
@@ -269,25 +269,25 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
             if d1 == d2:
                 ps.jail_turns = 0
                 state.doubles_in_row = 0
-                state.history.append(event(state, "jail", player, f"{state.names[player]} rolled doubles {d1}+{d2} and escaped Jail."))
+                state.history.append(event(state, "jail", player, f"{state.names[player]} hodil doubles {d1}+{d2} a ušiel z väzenia."))
                 move_and_resolve(state, player, roll_total, rng)
             else:
                 ps.jail_turns -= 1
-                state.history.append(event(state, "jail", player, f"{state.names[player]} failed to roll doubles ({d1}+{d2}) and stays in Jail."))
+                state.history.append(event(state, "jail", player, f"{state.names[player]} nehodil doubles ({d1}+{d2}) a ostáva vo väzení."))
                 if ps.jail_turns <= 0 and ps.cash >= 50:
                     ps.cash -= 50
-                    state.history.append(event(state, "jail", player, f"Third failed attempt: paid €50 and leaves next turn."))
+                    state.history.append(event(state, "jail", player, f"Tretí neúspešný pokus: platí €50 a ďalší ťah ide von."))
                 state.phase = "end"
             return bump(state)
 
         if d1 == d2:
             state.doubles_in_row += 1
             if state.doubles_in_row >= 3:
-                send_to_jail(state, player, "rolled three doubles and got rate-limited into Jail")
+                send_to_jail(state, player, "hodil tri doubles a dostal rate-limit do väzenia")
                 return bump(state)
         else:
             state.doubles_in_row = 0
-        state.history.append(event(state, "roll", player, f"{state.names[player]} rolled {d1}+{d2}."))
+        state.history.append(event(state, "roll", player, f"{state.names[player]} hodil {d1}+{d2}."))
         move_and_resolve(state, player, roll_total, rng)
         return bump(state)
 
@@ -297,7 +297,7 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         state.owners[space.id] = player
         state.pending_space = None
         state.phase = "end"
-        state.history.append(event(state, "buy", player, f"{state.names[player]} bought {space.name} for €{space.price}."))
+        state.history.append(event(state, "buy", player, f"{state.names[player]} kúpil {space.name} za €{space.price}."))
         check_bankruptcy_and_winner(state, player)
         return bump(state)
 
@@ -305,7 +305,7 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         space = BOARD[state.pending_space or 0]
         state.pending_space = None
         state.phase = "end"
-        state.history.append(event(state, "skip_buy", player, f"{state.names[player]} skipped buying {space.name}."))
+        state.history.append(event(state, "skip_buy", player, f"{state.names[player]} nekúpil {space.name}."))
         return bump(state)
 
     if action_type == "build":
@@ -314,7 +314,7 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
         state.player_state[player].cash -= space.house_cost
         state.buildings[space_id] = state.buildings.get(space_id, 0) + 1
         b = state.buildings[space_id]
-        state.history.append(event(state, "build", player, f"{state.names[player]} built {'a hotel' if b == 5 else f'house {b}'} on {space.name} for €{space.house_cost}."))
+        state.history.append(event(state, "build", player, f"{state.names[player]} built {'a hotel' if b == 5 else f'house {b}'} on {space.name} za €{space.house_cost}."))
         check_bankruptcy_and_winner(state, player)
         return bump(state)
 
@@ -332,9 +332,9 @@ def move_and_resolve(state: GameState, player: Player, amount: int, rng: random.
     ps.position = new
     if old + amount >= len(BOARD):
         ps.cash += GO_MONEY
-        state.history.append(event(state, "go", player, f"{state.names[player]} passed GO and collected €{GO_MONEY}."))
+        state.history.append(event(state, "go", player, f"{state.names[player]} prešiel Štartom a zobral €{GO_MONEY}."))
     space = BOARD[new]
-    state.history.append(event(state, "land", player, f"{state.names[player]} landed on {space.name}."))
+    state.history.append(event(state, "land", player, f"{state.names[player]} prišiel na {space.name}."))
     resolve_landing(state, player, space, amount, rng)
 
 
@@ -349,21 +349,21 @@ def resolve_landing(state: GameState, player: Player, space: Space, roll_total: 
         rent = rent_for(state, space, roll_total)
         ps.cash -= rent
         state.player_state[owner].cash += rent
-        state.history.append(event(state, "rent", player, f"Rent: {state.names[player]} pays €{rent} to {state.names[owner]}."))
+        state.history.append(event(state, "rent", player, f"Nájom: {state.names[player]} platí €{rent} pre {state.names[owner]}."))
     elif space.kind == "tax":
         ps.cash -= space.rent
-        state.history.append(event(state, "tax", player, f"{state.names[player]} pays €{space.rent} in {space.name}."))
+        state.history.append(event(state, "tax", player, f"{state.names[player]} platí €{space.rent} in {space.name}."))
     elif space.kind == "chance":
         draw_card(state, player, rng.choice(CHANCE_CARDS), rng)
     elif space.kind == "chest":
         draw_card(state, player, rng.choice(CHEST_CARDS), rng)
     elif space.kind == "go_to_jail":
-        send_to_jail(state, player, "was sent directly to Jail")
+        send_to_jail(state, player, "was sent directly pre Jail")
         return
     elif space.kind == "free_parking":
-        state.history.append(event(state, "free_parking", player, f"{state.names[player]} takes a couch break on Free Parking."))
+        state.history.append(event(state, "free_parking", player, f"{state.names[player]} si dáva gauč pauzu na Free Parking."))
     elif space.kind == "jail":
-        state.history.append(event(state, "visit_jail", player, f"{state.names[player]} is just visiting Jail. Extremely legal."))
+        state.history.append(event(state, "visit_jail", player, f"{state.names[player]} je vo väzení len na návšteve. Extrémne legálne."))
     check_bankruptcy_and_winner(state, player)
     state.phase = "end" if state.phase != "finished" else "finished"
 
@@ -371,14 +371,14 @@ def resolve_landing(state: GameState, player: Player, space: Space, roll_total: 
 def draw_card(state: GameState, player: Player, card: tuple[str, int | None], rng: random.Random) -> None:
     message, effect = card
     ps = state.player_state[player]
-    state.history.append(event(state, "card", player, f"Card: {message}"))
+    state.history.append(event(state, "card", player, f"Karta: {message}"))
     if effect is None:
         ps.jail_cards += 1
     elif effect == 0:
         ps.position = 0
         ps.cash += GO_MONEY
     elif effect == -9999:
-        send_to_jail(state, player, "drew a card sending them to Jail")
+        send_to_jail(state, player, "drew a card sending them pre Jail")
     elif effect == -3:
         ps.position = (ps.position - 3) % len(BOARD)
         resolve_landing(state, player, BOARD[ps.position], 3, rng)
@@ -404,12 +404,12 @@ def check_bankruptcy_and_winner(state: GameState, debtor: Player | None = None) 
                 if owner == p:
                     del state.owners[sid]
                     state.buildings.pop(sid, None)
-            state.history.append(event(state, "bankrupt", p, f"{state.names[p]} went bankrupt. Properties return to bank."))
+            state.history.append(event(state, "bankrupt", p, f"{state.names[p]} went bankrupt. Properties return pre bank."))
     active = active_players(state)
     if len(active) == 1:
         state.winner = active[0]
         state.phase = "finished"
-        state.history.append(event(state, "finish", active[0], f"{state.names[active[0]]} is the last capitalist standing."))
+        state.history.append(event(state, "finish", active[0], f"{state.names[active[0]]} je posledný kapitalista na nohách."))
 
 
 def finish_or_advance(state: GameState, player: Player, *, extra_turn: bool = False) -> None:
@@ -418,7 +418,7 @@ def finish_or_advance(state: GameState, player: Player, *, extra_turn: bool = Fa
         return
     if extra_turn and state.player_state[player].jail_turns == 0:
         state.phase = "roll"
-        state.history.append(event(state, "extra_turn", player, f"{state.names[player]} rolled doubles and goes again."))
+        state.history.append(event(state, "extra_turn", player, f"{state.names[player]} hodil doubles and goes again."))
         return
     state.doubles_in_row = 0
     state.turn = next_player(state, player)
