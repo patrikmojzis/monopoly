@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G real trades implemented locally; tests/build passed; commit/deploy/QA next.
+Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed and API-smoked/browser QA pending; Phase H mobile polish implemented locally; tests/build passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -22,17 +22,17 @@ Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G real trades implemente
 - [x] Phase E: deed hand/cards (`06`) — first pass: grouped physical deed cards, card click selects board tile
 - [x] Phase F: animations/game feel (`08`) — first pass: event toast overlays, dice HUD pop, selected tile ring, city breathe, auction/debt/build/mortgage motion
 - [x] Phase G: real trades (`07`) — first pass: pending trade proposals, accept/reject/cancel, stale validation, UI pending trade panel
-- [ ] Phase H: mobile game mode (`09`)
+- [x] Phase H: mobile game mode (`09`) — first pass: compact phone HUD, touch board affordance, Me/Sel center controls, bottom-sheet drawers, mobile deed/dock sizing
 - [ ] Phase I: visual art polish (`10`)
 - [ ] Phase J: QA/replay (`12`)
 
 ## Next action
 
-Commit/deploy Phase G and run API + browser QA on propose/accept/reject trade flow. Then start Phase H: mobile game mode polish (`09`).
+Commit/deploy Phase H and run narrow/mobile browser QA. Then start Phase I: visual art direction polish (`10`).
 
 ## Last known deployed commit
 
-- `17d3ce2` — game-feel animations: event toasts, dice pop, selected tile ring, ambient board motion.
+- `96ffab9` — real trade proposals: propose/accept/reject/cancel, pending trade state, stale validation, UI pending panel.
 
 ## Current critique of deployed commit
 

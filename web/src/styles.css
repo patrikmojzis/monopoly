@@ -737,3 +737,53 @@ button.mini-deed:hover { transform: translateY(-4px) rotate(-1deg); box-shadow: 
 .trade-response-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .action-propose_trade, .action-accept_trade { background: linear-gradient(135deg, #22c55e, #0ea5e9); color: white; }
 @media (max-width: 760px) { .pending-trade-grid { grid-template-columns: 1fr; } }
+
+
+/* Phase H first pass: mobile board-first touch polish. */
+.board-scroll { scrollbar-width: thin; scrollbar-color: rgba(250,204,21,.42) rgba(15,23,42,.28); touch-action: pan-x pan-y; }
+@media (max-width: 760px) {
+  body.game-mode-active { overscroll-behavior: none; }
+  .game-mode-shell { padding: max(5px, env(safe-area-inset-top)) 5px max(5px, env(safe-area-inset-bottom)); grid-template-rows: 34px 38px minmax(0, 1fr) auto; }
+  .brand-chip { height: 32px; width: 38px; justify-content: center; padding: 0; }
+  .brand-chip span { font-size: 1rem; }
+  .chrome-center { justify-self: start; gap: 5px; font-size: .66rem; }
+  .chrome-center span { max-width: 24vw; }
+  .chrome-actions { gap: 4px; }
+  .chrome-actions button { min-height: 32px; padding: 0 8px; font-size: .78rem; }
+  .chrome-actions button:nth-child(2) { display: none; }
+  .game-hud { grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; }
+  .hud-pill { min-height: 34px; gap: 5px; }
+  .hud-pill b { max-width: 22vw; }
+  .game-board-stage { border-radius: 20px; }
+  .game-board-stage::after { content: "drag board · Me centers token"; position: absolute; left: 10px; top: 48px; z-index: 9; padding: 4px 8px; border-radius: 999px; color: #fde68a; background: rgba(15,23,42,.64); border: 1px solid rgba(250,204,21,.16); font-size: .66rem; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; pointer-events: none; }
+  .game-board-stage .seat-rail { top: 6px; left: 6px; right: 6px; gap: 6px; scrollbar-width: none; }
+  .game-board-stage .seat-rail::-webkit-scrollbar { display: none; }
+  .game-board-stage .seat-card { min-width: 156px; grid-template-columns: auto minmax(0,1fr) auto; padding: 6px 7px; border-radius: 14px; }
+  .game-board-stage .seat-card i { display: none; }
+  .game-board-stage .seat-card small { max-width: 86px; }
+  .seat-card.active::after { right: 6px; top: -6px; font-size: .48rem; padding: 2px 5px; }
+  .board-scroll { padding: 72px 8px 104px; place-items: start; scroll-padding: 96px 20px 116px; }
+  .game-mode-shell .classic-board { width: min(860px, 220vw); height: min(860px, 220vw); min-width: min(860px, 220vw); min-height: min(860px, 220vw); gap: 3px; padding: 6px; }
+  .game-mode-shell .classic-tile { border-radius: 7px; padding-top: 12px; }
+  .game-mode-shell .board-logo { width: 78%; padding: 8px; }
+  .game-mode-shell .board-logo h2 { font-size: clamp(1.1rem, 8vw, 2rem); }
+  .floating-deed { top: auto; right: 8px; bottom: 96px; width: min(250px, calc(100vw - 132px)); max-height: 30dvh; overflow: hidden; z-index: 11; }
+  .floating-deed .deed-card { transform-origin: bottom right; }
+  .game-mode-shell .board-controls { left: 8px; right: 8px; bottom: 8px; width: auto; display: flex; justify-content: center; gap: 5px; padding: 5px; border-radius: 18px; }
+  .game-mode-shell .board-controls button { flex: 1; min-height: 34px; padding: 0 6px; font-size: .76rem; }
+  .game-action-dock { border-radius: 18px; min-height: 88px; gap: 7px; }
+  .dock-copy strong { font-size: .92rem; }
+  .dock-copy small { font-size: .74rem; }
+  .dock-primary-actions { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; }
+  .dock-primary-actions button, .dock-primary-actions .waiting-chip { min-height: 40px; border-radius: 12px; font-size: .76rem; }
+  .game-drawer { height: min(78dvh, 680px); padding: 12px; border-radius: 22px 22px 16px 16px; }
+  .drawer-title { top: -12px; }
+  .game-drawer.drawer-cards .mini-deed { min-height: 118px; }
+  .game-effect { top: 44%; max-width: calc(100% - 22px); padding: 11px 13px; border-radius: 18px; font-size: .86rem; }
+}
+@media (max-width: 420px) {
+  .dock-primary-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .dock-primary-actions .waiting-chip { grid-column: 1 / -1; justify-content: center; }
+  .floating-deed { width: min(220px, calc(100vw - 118px)); }
+  .game-mode-shell .classic-board { width: 820px; height: 820px; min-width: 820px; min-height: 820px; }
+}

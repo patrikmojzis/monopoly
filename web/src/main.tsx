@@ -139,7 +139,7 @@ function App() {
           <Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />
         </div>
       </div>
-      <BoardControls />
+      <BoardControls state={state} selectedId={selectedSpace?.id ?? null} />
       {selectedSpace && <div className="floating-deed"><DeedCard state={state} space={selectedSpace} /></div>}
       <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
       <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
@@ -354,19 +354,27 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
   </details>;
 }
 
-function BoardControls() {
+function BoardControls({ state, selectedId }: { state: GameState; selectedId: number | null }) {
+  function scroller() { return document.querySelector(".board-scroll") as HTMLElement | null; }
   function pan(where: "start" | "mid" | "end") {
-    const scroller = document.querySelector(".board-scroll");
-    if (!scroller) return;
-    const el = scroller as HTMLElement;
+    const el = scroller();
+    if (!el) return;
     const left = where === "start" ? 0 : where === "mid" ? el.scrollWidth / 2 - el.clientWidth / 2 : el.scrollWidth;
-    el.scrollTo({ left, behavior: "smooth" });
+    const top = where === "mid" ? el.scrollHeight / 2 - el.clientHeight / 2 : el.scrollTop;
+    el.scrollTo({ left, top, behavior: "smooth" });
   }
+  function focusTile(id: number) {
+    const tile = document.querySelector(`[data-space-id="${id}"]`) as HTMLElement | null;
+    tile?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }
+  const viewerPos = state.playerState[state.viewer].position;
   return <div className="card board-controls">
-    <span>Board pan</span>
-    <button onClick={() => pan("start")}>← left</button>
-    <button onClick={() => pan("mid")}>◇ center</button>
-    <button onClick={() => pan("end")}>right →</button>
+    <span>Board</span>
+    <button onClick={() => pan("start")} aria-label="Pan board left">←</button>
+    <button onClick={() => pan("mid")} aria-label="Center board">◇</button>
+    <button onClick={() => focusTile(viewerPos)} aria-label="Center my token">Me</button>
+    {selectedId !== null && <button onClick={() => focusTile(selectedId)} aria-label="Center selected tile">Sel</button>}
+    <button onClick={() => pan("end")} aria-label="Pan board right">→</button>
   </div>;
 }
 
@@ -615,7 +623,7 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   const buildings = state.buildings[String(space.id)] ?? 0;
   const mortgaged = !!state.mortgaged[String(space.id)];
-  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""} ${owner ? `owned owned-${owner} ${boardSideClass(space.id)}` : ""} ${buildings > 0 ? "has-buildings" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
+  return <button type="button" data-space-id={space.id} className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""} ${owner ? `owned owned-${owner} ${boardSideClass(space.id)}` : ""} ${buildings > 0 ? "has-buildings" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span><span className="tile-kind-icon">{spaceIcon(space.kind)}</span>
     <strong title={space.name}>{shortTileName(space.name)}</strong>
