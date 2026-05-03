@@ -29,7 +29,7 @@ Status: Game Mode v1 delivered and QA-smoked. Patrik requested a new TODO/planni
 - [ ] V2-B: table setup / human-agent-NPC seat model (`22`)
 - [ ] V2-C: token figurines + picker (`23`)
 - [ ] V2-D: fullscreen board comfort (`24`)
-- [ ] V2-H: board readability and orientation (`28`)
+- [x] V2-H: board readability and orientation (`28`) — first pass: side tile orientation + chunky token pieces
 - [x] V2-I: reference UI patterns / center-board action stage (`29`) — first pass: board center hosts dice/actions/tiny log
 - [ ] V2-E: animation system (`25`)
 - [ ] V2-F: sound system (`26`)
@@ -37,7 +37,7 @@ Status: Game Mode v1 delivered and QA-smoked. Patrik requested a new TODO/planni
 
 ## Next action
 
-Next implement V2-H (`28-board-readability-v2.md`): tile orientation/readability, token piece redesign, owner/building clarity. Center-board action stage is now in first pass; QA it on live before replay.
+Next QA live deploy for center-board stage + side-tile orientation + chunky tokens. If readable, continue V2-B/V2-C setup/token picker; if not, tune orientation before more features.
 
 ## Last known deployed commit
 

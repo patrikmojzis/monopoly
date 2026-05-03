@@ -920,3 +920,67 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
   .stage-log p:nth-child(n+3) { display: none; }
   .stage-actions .action-btn { min-height: 38px; padding: .62rem .78rem; }
 }
+
+/* V2-H: physical board readability pass — side orientation + real pieces, not grey pills. */
+.game-mode-shell .classic-tile.side-left strong,
+.game-mode-shell .classic-tile.side-left small,
+.game-mode-shell .classic-tile.side-right strong,
+.game-mode-shell .classic-tile.side-right small {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  align-self: center;
+  max-height: 54px;
+  max-width: 100%;
+}
+.game-mode-shell .classic-tile.side-right strong,
+.game-mode-shell .classic-tile.side-right small { writing-mode: vertical-lr; }
+.game-mode-shell .classic-tile.side-top strong,
+.game-mode-shell .classic-tile.side-top small { transform: rotate(180deg); align-self: center; }
+.game-mode-shell .classic-tile.side-left .stripe { width: 8px; height: auto; right: auto; bottom: 0; }
+.game-mode-shell .classic-tile.side-right .stripe { width: 8px; height: auto; left: auto; bottom: 0; }
+.game-mode-shell .classic-tile.side-top .stripe { top: auto; bottom: 0; }
+.game-mode-shell .tokens {
+  right: 4px;
+  bottom: 16px;
+  min-height: 0;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  filter: drop-shadow(0 5px 6px rgba(0,0,0,.34));
+}
+.game-mode-shell .tokens .token-piece {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50% 50% 45% 45%;
+  background: radial-gradient(circle at 35% 28%, #ffffff 0 18%, #fef3c7 19% 42%, #f59e0b 43% 100%);
+  border: 2px solid rgba(31,19,8,.72);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.76), inset 0 -4px 0 rgba(0,0,0,.16), 0 7px 10px rgba(0,0,0,.28);
+  font-size: 15px;
+  animation: tokenBob 1.7s ease-in-out infinite;
+}
+.game-mode-shell .tokens .token-piece::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: -4px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.24);
+  z-index: -1;
+}
+.game-mode-shell .tokens .owner-p2 { background: radial-gradient(circle at 35% 28%, #ffffff 0 18%, #dbeafe 19% 42%, #3b82f6 43% 100%); }
+.game-mode-shell .tokens .owner-p3 { background: radial-gradient(circle at 35% 28%, #ffffff 0 18%, #f3e8ff 19% 42%, #a855f7 43% 100%); }
+.game-mode-shell .tokens .owner-p4 { background: radial-gradient(circle at 35% 28%, #ffffff 0 18%, #ffe4e6 19% 42%, #f43f5e 43% 100%); }
+.game-mode-shell .classic-tile.selected .tokens .token-piece { animation: tokenBob .8s ease-in-out infinite; }
+@media (max-width: 760px) {
+  .game-mode-shell .classic-tile.side-left strong,
+  .game-mode-shell .classic-tile.side-left small,
+  .game-mode-shell .classic-tile.side-right strong,
+  .game-mode-shell .classic-tile.side-right small { max-height: 48px; }
+  .game-mode-shell .tokens .token-piece { width: 22px; height: 22px; font-size: 13px; }
+}

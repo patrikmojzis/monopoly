@@ -686,7 +686,7 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   const buildings = state.buildings[String(space.id)] ?? 0;
   const mortgaged = !!state.mortgaged[String(space.id)];
-  return <button type="button" data-space-id={space.id} className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""} ${owner ? `owned owned-${owner} ${boardSideClass(space.id)}` : ""} ${buildings > 0 ? "has-buildings" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
+  return <button type="button" data-space-id={space.id} className={`tile classic-tile ${boardSideClass(space.id)} ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""} ${owner ? `owned owned-${owner}` : ""} ${buildings > 0 ? "has-buildings" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span><span className="tile-kind-icon">{spaceIcon(space.kind)}</span>
     <strong title={space.name}>{shortTileName(space.name)}</strong>
@@ -698,7 +698,7 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
     {owner && <span className={`owner-edge owner-${owner}`} />}
     {buildings > 0 && <BuildingStack count={buildings} />}
     {mortgaged && <span className="mortgage-stamp">M</span>}
-    <div className="tokens">{occupants.map((p) => <span key={p}>{emojiFor(state, p)}</span>)}</div>
+    <div className="tokens">{occupants.map((p) => <span className={`token-piece owner-${p}`} title={state.names[p]} key={p}>{emojiFor(state, p)}</span>)}</div>
   </button>;
 }
 
