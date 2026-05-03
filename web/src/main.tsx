@@ -202,7 +202,6 @@ function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBo
       {!viewerTurn && !waitingNpc && state.phase !== "finished" && <span className="waiting-chip">No button here — real player/agent turn</span>}
       <button className="ghost" onClick={() => setOpenDrawer("cards")}>Cards</button>
       <button className="ghost" onClick={() => setOpenDrawer("trade")}>Trade</button>
-      <button className="ghost" onClick={() => setOpenDrawer("menu")}>Menu</button>
     </div>
   </section>;
 }
