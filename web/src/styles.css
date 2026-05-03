@@ -289,3 +289,25 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
 .group-chip i { grid-column: 1 / -1; height: 5px; background: rgba(15,23,42,.8); border-radius: 999px; overflow: hidden; }
 .group-chip em { display: block; height: 100%; background: linear-gradient(90deg,#22c55e,#facc15); border-radius: inherit; }
 @media (max-width: 760px) { .group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Iteration pass 7-10: board panning, rules, portfolio, tile icons. */
+.board-controls { display: flex; gap: 8px; align-items: center; padding: 9px 10px; }
+.board-controls span { color: #fde68a; font-weight: 900; margin-right: auto; }
+.board-controls button { border: 1px solid rgba(250,204,21,.2); background: rgba(250,204,21,.08); color: #fef3c7; border-radius: 999px; padding: 7px 10px; font-weight: 900; cursor: pointer; }
+.rules-card { margin-bottom: 14px; padding: 12px 14px; border-color: rgba(147,197,253,.18); }
+.rules-card summary { cursor: pointer; color: #dbeafe; font-weight: 900; }
+.rules-card ul { margin: 10px 0 0; padding-left: 20px; color: #cbd5e1; }
+.rules-card li { margin: 5px 0; }
+.portfolio-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 14px; padding: 10px; }
+.portfolio-mini { display: grid; gap: 4px; padding: 9px; border-radius: 14px; background: rgba(2,6,23,.35); border: 1px solid rgba(255,255,255,.07); }
+.portfolio-mini strong { color: #fef3c7; }
+.portfolio-mini span { color: #94a3b8; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-kind-icon { position: absolute; top: 5px; right: 6px; font-size: .82rem; opacity: .9; }
+.tile { position: relative; }
+@media (max-width: 760px) {
+  .board-controls { position: sticky; left: 10px; top: 108px; z-index: 13; width: max-content; max-width: calc(100vw - 28px); overflow-x: auto; }
+  .board-controls span { display: none; }
+  .board-controls button { min-height: 38px; white-space: nowrap; }
+  .portfolio-strip { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .rules-card { font-size: .9rem; }
+}

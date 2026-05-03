@@ -136,10 +136,12 @@ function App() {
 
     <TurnBanner state={state} />
     <TablePulse state={state} />
+    <PortfolioStrip state={state} />
+    <RulesCard />
     <CurrentSpot state={state} />
 
     <section className="layout classic-layout">
-      <div className="board-wrap"><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<GroupTracker state={state} /><BoardLegend /></div>
+      <div className="board-wrap"><BoardControls /><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<GroupTracker state={state} /><BoardLegend /></div>
       <aside>
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
@@ -193,6 +195,51 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
       <div className="invite-item"><strong>👀 Spectator</strong><code>{created.spectatorUrl}</code><button className="copy-btn" onClick={() => copy("Spectator", created.spectatorUrl)}>Copy spectator</button></div>
     </div>
   </section>;
+}
+
+function BoardControls() {
+  function pan(where: "start" | "mid" | "end") {
+    const scroller = document.querySelector(".layout");
+    if (!scroller) return;
+    const el = scroller as HTMLElement;
+    const left = where === "start" ? 0 : where === "mid" ? el.scrollWidth / 2 - el.clientWidth / 2 : el.scrollWidth;
+    el.scrollTo({ left, behavior: "smooth" });
+  }
+  return <div className="card board-controls">
+    <span>Board pan</span>
+    <button onClick={() => pan("start")}>← left</button>
+    <button onClick={() => pan("mid")}>◇ center</button>
+    <button onClick={() => pan("end")}>right →</button>
+  </div>;
+}
+
+function RulesCard() {
+  return <details className="card rules-card">
+    <summary>🎲 Ako hrať / quick rules</summary>
+    <ul>
+      <li>Hoď kockami, kúp voľné políčko alebo ho nechaj banke.</li>
+      <li>Keď stojíš na cudzom majetku, platíš nájom automaticky.</li>
+      <li>Celá farebná skupina odomkne stavanie domov/hotela.</li>
+      <li>Doubles = ideš ešte raz; tri doubles = väzenie, klasika cursed.</li>
+      <li>Na mobile používaj spodný action dock a pan buttons pri doske.</li>
+    </ul>
+  </details>;
+}
+
+function PortfolioStrip({ state }: { state: GameState }) {
+  return <section className="card portfolio-strip">
+    {state.players.map((p) => {
+      const owned = Object.entries(state.owners).filter(([, owner]) => owner === p).map(([id]) => state.board[Number(id)]);
+      return <div key={p} className="portfolio-mini">
+        <strong>{emojiFor(state, p)} {state.names[p]}</strong>
+        <span>{owned.length ? owned.slice(0, 3).map((s) => s.name).join(" · ") : "bez majetku zatiaľ"}</span>
+      </div>;
+    })}
+  </section>;
+}
+
+function spaceIcon(kind: string) {
+  return ({ go: "💰", property: "🏘️", tax: "🧾", chance: "❓", chest: "🎁", jail: "🚔", go_to_jail: "🚨", free_parking: "🛋️", railroad: "🚋", utility: "⚡" } as Record<string, string>)[kind] ?? "▫️";
 }
 
 function TablePulse({ state }: { state: GameState }) {
@@ -315,7 +362,7 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
   const buildings = state.buildings[String(space.id)] ?? 0;
   return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
-    <span className="tile-id">{space.id}</span>
+    <span className="tile-id">{space.id}</span><span className="tile-kind-icon">{spaceIcon(space.kind)}</span>
     <strong title={space.name}>{space.name}</strong>
     {space.price > 0 && <small>€{space.price} · rent €{space.currentRent || space.rent || "dice"}</small>}
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
