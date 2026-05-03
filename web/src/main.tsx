@@ -5,6 +5,8 @@ import type { CreateGameResponse, GameAction, GameState, Player, Space } from ".
 import "./styles.css";
 
 const PLAYER_EMOJI = ["🧑‍🚀", "🤖", "🌙", "🐈"];
+type DrawerName = "cards" | "log" | "menu" | "players" | "rules" | "trade";
+
 const COLOR: Record<string, string> = {
   brown: "#8b5a2b",
   "light-blue": "#7dd3fc",
@@ -28,6 +30,7 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [autoBots, setAutoBots] = useState(() => localStorage.getItem("panda-capital-autobots") === "1");
+  const [openDrawer, setOpenDrawer] = useState<DrawerName | null>(null);
 
   async function start() {
     setBusy(true);
@@ -86,13 +89,17 @@ function App() {
 
   useEffect(() => { if (gameId && token) refresh(); }, []);
   useEffect(() => {
+    document.body.classList.toggle("game-mode-active", !!state);
+    return () => document.body.classList.remove("game-mode-active");
+  }, [!!state]);
+  useEffect(() => {
     if (!gameId || !token || state?.phase === "finished") return;
     const id = window.setInterval(() => { refresh(); }, 8000);
     return () => window.clearInterval(id);
   }, [gameId, token, state?.phase]);
   useEffect(() => { localStorage.setItem("panda-capital-autobots", autoBots ? "1" : "0"); }, [autoBots]);
   useEffect(() => {
-    if (!autoBots || !state || busy || state.phase === "finished" || state.turn === state.viewer) return;
+    if (!autoBots || !state || busy || state.phase === "finished" || state.turn === state.viewer || !isNpcSeat(state, state.turn)) return;
     const id = window.setTimeout(() => { runBot(); }, 900);
     return () => window.clearTimeout(id);
   }, [autoBots, busy, state?.turn, state?.phase, state?.version]);
@@ -100,6 +107,7 @@ function App() {
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
   const buttonActions = legal.filter((a) => a.type !== "trade");
   const selectedSpace = state ? state.board[selectedSpaceId ?? state.pendingSpace ?? state.playerState[state.turn].position] : null;
+  const hasNpcSeats = state ? state.players.some((p) => isNpcSeat(state, p)) : false;
 
   if (!state) {
     return <main className="landing">
@@ -120,63 +128,113 @@ function App() {
     </main>;
   }
 
-  return <main className="app-shell">
-    <header>
-      <div>
-        <p className="eyebrow">Game {state.id} · v{state.version} · viewer {state.names[state.viewer] ?? state.viewer}</p>
-        <h1><span>Panda</span> Capital</h1>
-      </div>
-      <div className="header-actions">
-        <button className="ghost" onClick={refresh} disabled={busy}>Refresh</button>
-        <button className="ghost" onClick={start} disabled={busy}>New table</button>
-        <button className={`ghost ${autoBots ? "lit" : ""}`} onClick={() => setAutoBots(!autoBots)} disabled={busy}>{autoBots ? "🤖 Auto-play ON" : "🤖 Auto-play OFF"}</button>
-      </div>
-    </header>
+  return <main className="game-mode-shell">
+    <GameTopChrome state={state} busy={busy} refresh={refresh} start={start} setOpenDrawer={setOpenDrawer} />
+    <GameHud state={state} />
 
-    {created && <InvitePanel created={created} state={state} />}
-
-    <section className="status-card">
-      <div><span className="label">Turn</span><strong>{emojiFor(state, state.turn)} {state.names[state.turn]}</strong></div>
-      <div><span className="label">Phase</span><strong>{phaseLabel(state.phase)}</strong></div>
-      <div><span className="label">Roll</span><strong>{state.lastRoll ? `${state.lastRoll[0]} + ${state.lastRoll[1]}` : "—"}</strong></div>
-      <div><span className="label">Dbl</span><strong>{state.doublesInRow || "—"}</strong></div>
-      <div><span className="label">Parking</span><strong>€{state.freeParkingPot}</strong></div>
-      {state.winner && <div className="winner">🏆 {state.names[state.winner]} wins</div>}
-    </section>
-
-    <section className="tabletop-stage">
+    <section className="game-board-stage">
       <SeatRail state={state} />
-      <TurnBanner state={state} />
-      <TurnAssist state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
+      <div className="board-scroll">
+        <div className="board-canvas">
+          <Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />
+        </div>
+      </div>
+      <BoardControls />
+      {selectedSpace && <div className="floating-deed"><DeedCard state={state} space={selectedSpace} /></div>}
       <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
       <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
-      <div className="board-table">
-        <div className="board-wrap"><BoardControls /><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} /></div>
-        <aside className="table-side">
-          {selectedSpace && <DeedCard state={state} space={selectedSpace} />}
-          <DeedHand state={state} />
-          <TablePulse state={state} />
-        </aside>
-      </div>
     </section>
 
-    <section className="lower-panels">
-      <details className="card collapsible-panel"><summary>Player details</summary>{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</details>
-      <details className="card collapsible-panel"><summary>Rules & groups</summary><RulesCard /><GroupTracker state={state} /><BoardLegend /></details>
-      <aside>
-        <div className="actions card">
-          <h2>Legal actions</h2>
-          {buttonActions.length ? buttonActions.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
-          <TradeDesk state={state} act={act} busy={busy} />
-          {state.turn !== state.viewer && state.phase !== "finished" && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Play bot turn</button>}
-          {error && <p className="error">{error}</p>}
-        </div>
-      </aside>
-    </section>
-
-    <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
-    <MobileActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
+    <GameActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} setOpenDrawer={setOpenDrawer} autoBots={autoBots} />
+    <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} act={act} busy={busy} />
   </main>;
+}
+function GameTopChrome({ state, busy, refresh, start, setOpenDrawer }: { state: GameState; busy: boolean; refresh: () => void; start: () => void; setOpenDrawer: (drawer: DrawerName | null) => void }) {
+  return <header className="game-top-chrome">
+    <button className="brand-chip" onClick={() => setOpenDrawer("menu")} aria-label="Open game menu"><span>🎩</span><b>Panda Capital</b></button>
+    <div className="chrome-center"><span>Game {state.id}</span><i>v{state.version}</i></div>
+    <nav className="chrome-actions">
+      <button className="ghost" onClick={refresh} disabled={busy}>↻</button>
+      <button className="ghost" onClick={() => setOpenDrawer("log")}>Log</button>
+      <button className="ghost" onClick={() => setOpenDrawer("menu")}>☰</button>
+    </nav>
+  </header>;
+}
+
+function GameHud({ state }: { state: GameState }) {
+  const viewerInfo = state.playerState[state.viewer];
+  return <section className="game-hud">
+    <div className="hud-pill viewer"><span>{emojiFor(state, state.viewer)}</span><b>{state.names[state.viewer]}</b><strong>€{viewerInfo.cash}</strong></div>
+    <div className="hud-pill turn"><span>{emojiFor(state, state.turn)}</span><b>{state.names[state.turn]}</b><strong>{phaseLabel(state.phase)}</strong></div>
+    <div className="hud-pill dice"><b>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b><strong>{state.lastRoll ? `${state.lastRoll[0]}+${state.lastRoll[1]}` : "roll"}</strong></div>
+    <div className="hud-pill pot"><b>🅿️</b><strong>€{state.freeParkingPot}</strong></div>
+  </section>;
+}
+
+function GameActionDock({ state, legal, busy, act, runBot, setOpenDrawer, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; autoBots: boolean }) {
+  const viewerTurn = state.turn === state.viewer && state.canAct;
+  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "trade"].includes(a.type)).slice(0, 3);
+  const latest = state.history[state.history.length - 1]?.message;
+  const waitingNpc = !viewerTurn && state.turn !== state.viewer && isNpcSeat(state, state.turn);
+  return <section className={`game-action-dock ${viewerTurn ? "active" : "waiting"}`}>
+    <div className="dock-copy">
+      <span className="label">{viewerTurn ? "Your move" : state.phase === "finished" ? "Game over" : "Waiting"}</span>
+      <strong>{viewerTurn ? actionPrompt(state) : `${emojiFor(state, state.turn)} ${state.names[state.turn]} is up`}</strong>
+      <small>{latest ?? "Čakáme na prvý hod."}</small>
+    </div>
+    <div className="dock-primary-actions">
+      {viewerTurn && primary.length ? primary.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : null}
+      {waitingNpc && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>Run NPC</button>}
+      {!viewerTurn && !waitingNpc && state.phase !== "finished" && <span className="waiting-chip">No button here — real player/agent turn</span>}
+      <button className="ghost" onClick={() => setOpenDrawer("cards")}>Cards</button>
+      <button className="ghost" onClick={() => setOpenDrawer("trade")}>Trade</button>
+      <button className="ghost" onClick={() => setOpenDrawer("menu")}>Menu</button>
+    </div>
+  </section>;
+}
+
+function GameDrawer({ open, onClose, state, created, error, refresh, start, autoBots, setAutoBots, hasNpcSeats, setOpenDrawer, act, busy }: { open: DrawerName | null; onClose: () => void; state: GameState; created: CreateGameResponse | null; error: string | null; refresh: () => void; start: () => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean; setOpenDrawer: (drawer: DrawerName | null) => void; act: (a: GameAction) => void; busy: boolean }) {
+  if (!open) return null;
+  return <div className="drawer-backdrop" onClick={onClose}>
+    <aside className={`game-drawer drawer-${open}`} onClick={(e) => e.stopPropagation()}>
+      <div className="drawer-title"><h2>{drawerTitle(open)}</h2><button className="ghost" onClick={onClose}>✕</button></div>
+      {open === "cards" && <DeedHand state={state} />}
+      {open === "log" && <section className="history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 24).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>}
+      {open === "players" && <div className="drawer-stack">{state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}</div>}
+      {open === "rules" && <div className="drawer-stack"><RulesCard /><GroupTracker state={state} /><BoardLegend /></div>}
+      {open === "trade" && <div className="drawer-stack"><TradeDesk state={state} act={act} busy={busy} /><p className="muted">Real proposal trades are next TODO. Current mode is still table-trust transfer until Phase G.</p></div>}
+      {open === "menu" && <div className="drawer-stack menu-grid">
+        <button onClick={refresh} disabled={busy}>Refresh state</button>
+        <button onClick={start} disabled={busy}>New table</button>
+        <button onClick={() => onClose()}>Back to board</button>
+        <button className="ghost" onClick={() => { onClose(); setTimeout(() => document.querySelector('.board-scroll')?.scrollTo({ left: 9999, top: 9999, behavior: 'smooth' }), 30); }}>Center-ish board</button>
+        <button className="ghost" onClick={() => onClose()}>Settings soon</button>
+        {hasNpcSeats && <label className="toggle-row"><input type="checkbox" checked={autoBots} onChange={(e) => setAutoBots(e.target.checked)} /> Auto-play NPCs</label>}
+        {!hasNpcSeats && <p className="muted">No NPC seats here. Clawd/real players act from their own seat/API — no confusing bot button.</p>}
+        <button className="ghost" onClick={() => setOpenDrawer("rules")}>Rules</button>
+        {created && <InvitePanel created={created} state={state} />}
+        {error && <p className="error">{error}</p>}
+      </div>}
+    </aside>
+  </div>;
+}
+
+function drawerTitle(open: DrawerName) {
+  return ({ cards: "Your deed cards", log: "Game log", menu: "Game menu", players: "Players", rules: "Rules & groups", trade: "Trade desk" } as Record<DrawerName, string>)[open];
+}
+
+function actionPrompt(state: GameState) {
+  if (state.phase === "auction") return "Auction time";
+  if (state.phase === "debt") return "Debt crisis";
+  if (state.phase === "buy") return "Buy or auction";
+  if (state.phase === "roll") return "Roll dice";
+  if (state.phase === "end") return "Wrap the turn";
+  return "Game over";
+}
+
+function isNpcSeat(state: GameState, player: Player) {
+  const name = (state.names[player] ?? "").toLowerCase();
+  return ["luna", "angelina", "bot", "npc"].some((needle) => name.includes(needle));
 }
 
 function SeatRail({ state }: { state: GameState }) {
@@ -256,7 +314,7 @@ function InvitePanel({ created, state }: { created: CreateGameResponse; state: G
 
 function BoardControls() {
   function pan(where: "start" | "mid" | "end") {
-    const scroller = document.querySelector(".layout");
+    const scroller = document.querySelector(".board-scroll");
     if (!scroller) return;
     const el = scroller as HTMLElement;
     const left = where === "start" ? 0 : where === "mid" ? el.scrollWidth / 2 - el.clientWidth / 2 : el.scrollWidth;
@@ -315,7 +373,7 @@ function TurnAssist({ state, legal, busy, act, runBot, autoBots }: { state: Game
     <div><span className="label">Table coach</span><strong>{viewerTurn ? "Tvoj move" : `${state.names[state.turn]} je na rade`}</strong><p>{text}</p></div>
     <div className="assist-actions">
       {viewerTurn && primary && <button className={`action-btn action-${primary.type}`} disabled={busy} onClick={() => act(cleanAction(primary))}><span>{actionIcon(primary.type)}</span>{primary.label ?? labelFor(primary.type)}</button>}
-      {!viewerTurn && state.turn !== state.viewer && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} play</button>}
+      {!viewerTurn && state.turn !== state.viewer && !autoBots && isNpcSeat(state, state.turn) && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Run NPC turn</button>}
       {!viewerTurn && state.turn !== state.viewer && autoBots && <span className="auto-pill">🤖 Auto-bots running</span>}
     </div>
   </section>;
@@ -331,7 +389,7 @@ function AuctionBanner({ state, legal, busy, act, runBot }: { state: GameState; 
     <div className="auction-title"><span>🔨</span><div><p className="label">Auction live</p><h2>{space.name}</h2><p>{space.price ? `List price €${space.price}` : "Bank property"} · {space.kind.replace(/_/g, " ")}</p></div></div>
     <div className="auction-meta"><span><b>High bid</b>{high ? `${state.names[high]} · €${state.auction.currentBid}` : "no bids yet"}</span><span><b>Bidders</b>{state.auction.active.map((p) => state.names[p]).join(" · ")}</span></div>
     {state.canAct && <div className="auction-actions">{bidActions.map((a) => <button key={`${a.type}-${a.amount}`} className="action-btn action-bid_auction" disabled={busy} onClick={() => act(cleanAction(a))}>🔨 €{a.amount}</button>)}{pass && <button className="action-btn action-pass_auction" disabled={busy} onClick={() => act(cleanAction(pass))}>✋ Pass</button>}</div>}
-    {!state.canAct && state.turn !== state.viewer && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} bid/pass</button>}
+    {!state.canAct && state.turn !== state.viewer && isNpcSeat(state, state.turn) && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Run NPC bid/pass</button>}
   </section>;
 }
 

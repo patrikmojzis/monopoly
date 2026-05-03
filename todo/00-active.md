@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: planning complete, implementation next.
+Status: Phase A+B implemented locally; build/tests passed; commit/deploy/QA next.
 
 ## Rules for Clawd
 
@@ -15,8 +15,8 @@ Status: planning complete, implementation next.
 
 ## Ordered queue
 
-- [ ] Phase A: fullscreen shell + compact HUD (`01`, `02`)
-- [ ] Phase B: bot controls cleanup (`03`)
+- [x] Phase A: fullscreen shell + compact HUD (`01`, `02`) — implemented in local game-mode pass
+- [x] Phase B: bot controls cleanup (`03`) — Clawd/real-player buttons hidden; NPC autoplay moved to menu
 - [ ] Phase C: board readability (`04`)
 - [ ] Phase D: player seats + board space (`05`)
 - [ ] Phase E: deed hand/cards (`06`)
@@ -28,13 +28,7 @@ Status: planning complete, implementation next.
 
 ## Next action
 
-Start Phase A+B together only where they touch the same layout surface:
-
-- create fullscreen `GameMode` shell
-- compress top HUD
-- move log/rules/invites/settings into drawers or hidden panels
-- remove confusing bot buttons for 1v1
-- keep board visible immediately
+Commit and deploy Phase A+B, run production smoke + browser visual QA. Then start Phase C: board readability (`04`).
 
 ## Last known deployed commit
 
