@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A-I deployed/QA-smoked after 23a9002; Patrik requested dice animation, sounds, bigger board/fullscreen focus, moving-token animation, and richer setup/token selection. Board focus + dice HUD animation + basic sound toggle implemented locally; tests/build passed; deploy next.
+Status: Phase A-I deployed/QA-smoked; board focus/menu/dice feedback QA passed; duplicate dock menu removed in 7bf4e10 and deploy pending. Live polish feedback captured in `13-polish-feedback.md`.
 
 ## Rules for Clawd
 
@@ -28,11 +28,11 @@ Status: Phase A-I deployed/QA-smoked after 23a9002; Patrik requested dice animat
 
 ## Next action
 
-Commit/deploy board-focus/dice/sound patch, QA it, then continue with moving-token animation and richer setup/token picker before fresh replay.
+Wait for 7bf4e10 deploy smoke. Then implement next polish from `13`: moving-token animation first, then richer setup/token picker.
 
 ## Last known deployed commit
 
-- `23a9002` — default table fixed to Patrik+Clawd, add/remove player controls, board text/owner/deed contrast readability patch; quick visual QA passed.
+- `7bf4e10` — removed duplicate Menu button from bottom action dock after board-focus/menu QA passed; deploy pending.
 
 ## Current critique of deployed commit
 
