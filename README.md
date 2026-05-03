@@ -1,24 +1,23 @@
-# Monopoly Lite Web + Agent API
+# Panda Capital — Classic Board + Agent API
 
-Tiny couch-friendly Monopoly-ish / Panda Capital game with the same shape as Patrik's Durak/Quoridor projects: FastAPI backend, Vite React frontend, SQLite persistence, tokenized player/agent API, and a Docker-first deployment path.
+Classic property-board chaos with the same shape as Patrik's Durak/Quoridor projects: FastAPI backend, Vite React frontend, SQLite persistence, tokenized player/agent API, and Docker-first deployment.
 
-This is deliberately **Panda Capital / Monopoly-lite**, not a rules-lawyer clone. The point is fast couch play: roll, buy, pay rent, watch Clawd make financially questionable moves, repeat.
+This is **classic Monopoly-inspired**, but with original Panda Capital board names/art so the public repo/site does not cosplay as Hasbro bait. The gameplay vibe is normal property capitalism: roll, buy, pay rent, go to Jail, draw cards, build houses/hotels-lite, bankrupt your friends lovingly.
 
-## Current MVP
+## Current v2
 
-- 2 players: `p1` Patrik, `p2` Clawd.
-- Start cash: €1500.
-- 20-space compact board.
-- 2d6 dice, +€200 when passing GO.
-- Buy unowned properties / railroads / utility.
-- Pay rent when landing on opponent-owned spaces.
-- Railroads scale rent when Clawd/Patrik owns multiple.
-- Full color sets double property rent.
-- Chance / Community Chest random small cash swings.
-- Tax space charges €100.
-- First bankrupt player loses, or first €2500 net worth wins.
-- Browser can request an automatic Clawd turn via server-side `/clawd-turn`.
-- Agent/API mode still works with player bearer tokens and `board.txt` / `legal-actions`.
+- 2–4 players via `POST /api/games` `playerNames`, defaulting to Patrik / Clawd.
+- Browser invite URLs and bearer-token API configs for every player plus spectator.
+- 40-space board with GO, Jail, Go To Jail, Free Parking, taxes, Chance, Community Cache, railroads, utilities, and 8 property color groups.
+- Start cash: €1500; pass GO: +€200.
+- Buy/skip unowned properties, railroads, utilities.
+- Automatic rent, railroad scaling, utility dice rent, and color-set rent doubling.
+- Houses/hotels-lite after owning a full color set; build evenly.
+- Jail flow: roll doubles, pay €50, or use a rate-limit pass card.
+- Doubles give an extra turn; three doubles sends the player to Jail.
+- Bankruptcy eliminates a player and returns properties to the bank; last active player wins.
+- Bot helper endpoint can play the current non-Patrik player (`/bot-turn`); `/clawd-turn` remains as a compatibility alias.
+- Agent/API mode works with player bearer tokens and `board.txt` / `legal-actions` / `actions`.
 
 ## Docker deployment
 
@@ -69,16 +68,26 @@ cd web
 node ./node_modules/typescript/bin/tsc && node ./node_modules/vite/bin/vite.js build
 ```
 
+Tests:
+
+```bash
+. .venv/bin/activate
+pip install -r server/requirements-dev.txt
+PYTHONPATH=server python -m pytest -q
+```
+
 ## API shape
 
 - `GET /api/health`
 - `POST /api/games`
+  - body example: `{ "playerNames": ["Patrik", "Clawd", "Angelina", "Luna"] }`
 - `GET /api/games/{id}`
 - `GET /api/games/{id}/legal-actions`
 - `GET /api/games/{id}/board.txt`
 - `GET /api/games/{id}/wait?since={version}`
 - `POST /api/games/{id}/actions`
-- `POST /api/games/{id}/clawd-turn`
+- `POST /api/games/{id}/bot-turn`
+- `POST /api/games/{id}/clawd-turn` compatibility alias
 
 Player and spectator access use bearer tokens returned by game creation.
 
@@ -91,11 +100,18 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/jso
   -d '{"type":"roll"}' "$BASE/api/games/$GAME/actions"
 ```
 
+For build actions, include `spaceId` from `legal-actions`:
+
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"type":"build","spaceId":1}' "$BASE/api/games/$GAME/actions"
+```
+
 ## Files
 
 - `server/app/engine.py` — pure game rules/state transitions.
 - `server/app/storage.py` — SQLite JSON state persistence.
-- `server/app/main.py` — FastAPI routes, token auth, Clawd auto-turn.
+- `server/app/main.py` — FastAPI routes, token auth, bot auto-turn.
 - `web/src/main.tsx` — React UI.
 - `Dockerfile`, `docker-compose.yml` — deploy path.
 
@@ -111,8 +127,8 @@ Required GitHub repo secrets:
 - `SERVER_USER` — SSH user, e.g. `root` or `deploy`.
 - `SERVER_PORT` — optional SSH port, defaults to `22`.
 - `SSH_PRIVATE_KEY` — private key with access to that user.
-- `DEPLOY_PATH` — target directory, e.g. `/opt/panda-capital`.
-- `PUBLIC_BASE_URL` — public URL, e.g. `https://monopoly.patrikmojzis.com`.
+- `DEPLOY_PATH` — target directory, e.g. `/srv/monopoly`.
+- `PUBLIC_BASE_URL` — public URL, e.g. `https://monopoly.example.com`.
 
 Optional secrets:
 

@@ -16,11 +16,11 @@ function authHeaders(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
 
-export function createGame(): Promise<CreateGameResponse> {
+export function createGame(playerNames: string[]): Promise<CreateGameResponse> {
   return fetch("/api/games", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ humanPlayer: "p1" })
+    body: JSON.stringify({ humanPlayer: "p1", playerNames })
   }).then(parseResponse<CreateGameResponse>);
 }
 
@@ -36,8 +36,8 @@ export function sendAction(gameId: string, token: string, action: GameAction): P
   }).then(parseResponse<GameState>);
 }
 
-export function clawdTurn(gameId: string, token: string): Promise<GameState> {
-  return fetch(`/api/games/${gameId}/clawd-turn`, {
+export function botTurn(gameId: string, token: string): Promise<GameState> {
+  return fetch(`/api/games/${gameId}/bot-turn`, {
     method: "POST",
     headers: authHeaders(token)
   }).then(parseResponse<GameState>);

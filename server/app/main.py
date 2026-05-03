@@ -11,21 +11,23 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .engine import BOARD, IllegalAction, apply_action, initial_state, legal_actions, net_worth
+from .engine import BOARD, BUYABLE, IllegalAction, apply_action, initial_state, legal_actions, net_worth, rent_for
 from .storage import load_game, save_game
 
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
 WEB_DIST_DIR = Path(os.environ.get("WEB_DIST_DIR", "web/dist"))
 
-app = FastAPI(title="Monopoly Lite")
+app = FastAPI(title="Panda Capital")
 
 
 class GameCreate(BaseModel):
     humanPlayer: str = "p1"
+    playerNames: list[str] | None = None
 
 
 class ActionIn(BaseModel):
     type: str
+    spaceId: int | None = None
 
 
 @app.get("/api/health")
@@ -65,11 +67,13 @@ def public_state(state, viewer: str) -> dict:
         "canAct": viewer == state.turn and state.phase != "finished",
         "players": state.players,
         "names": state.names,
-        "playerState": {p: {"cash": ps.cash, "position": ps.position, "jailTurns": ps.jail_turns, "netWorth": net_worth(state, p)} for p, ps in state.player_state.items()},
+        "playerState": {p: {"cash": ps.cash, "position": ps.position, "jailTurns": ps.jail_turns, "jailCards": ps.jail_cards, "active": ps.active, "netWorth": net_worth(state, p)} for p, ps in state.player_state.items()},
         "owners": state.owners,
+        "buildings": state.buildings,
         "lastRoll": state.last_roll,
+        "doublesInRow": state.doubles_in_row,
         "pendingSpace": state.pending_space,
-        "board": [asdict(space) for space in BOARD],
+        "board": [asdict(space) | {"currentRent": rent_for(state, space, state.last_roll[0] + state.last_roll[1] if state.last_roll else None), "isBuyable": space.kind in BUYABLE} for space in BOARD],
         "legalActions": legal_actions(state, viewer) if viewer in state.players else [],
         "history": state.history[-30:],
         "links": links(state.id),
@@ -79,12 +83,17 @@ def public_state(state, viewer: str) -> dict:
 @app.post("/api/games")
 def create_game(payload: GameCreate) -> dict:
     game_id = uuid.uuid4().hex[:12]
-    tokens = {"p1": secrets.token_urlsafe(24), "p2": secrets.token_urlsafe(24), "spectator": secrets.token_urlsafe(24)}
-    state = initial_state(game_id, tokens=tokens)
+    names = payload.playerNames or ["Patrik", "Clawd"]
+    player_count = max(2, min(4, len([n for n in names if n and n.strip()])))
+    players = [f"p{i+1}" for i in range(player_count)]
+    tokens = {p: secrets.token_urlsafe(24) for p in players}
+    tokens["spectator"] = secrets.token_urlsafe(24)
+    state = initial_state(game_id, tokens=tokens, names=names)
     save_game(state)
     player_urls = {p: f"{PUBLIC_BASE_URL}/game/{game_id}?token={t}" for p, t in tokens.items()}
-    agent_configs = {p: {"gameId": game_id, "player": p, "authorization": f"Bearer {tokens[p]}", "stateUrl": links(game_id)["self"], "legalActionsUrl": links(game_id)["legalActions"], "boardTextUrl": links(game_id)["boardText"], "waitUrl": links(game_id)["wait"], "actionUrl": links(game_id)["action"]} for p in ["p1", "p2"]}
-    return {"gameId": game_id, "turn": state.turn, "browserUrl": player_urls[payload.humanPlayer], "spectatorUrl": player_urls["spectator"], "playerUrls": player_urls, "agentConfigs": agent_configs}
+    agent_configs = {p: {"gameId": game_id, "player": p, "authorization": f"Bearer {tokens[p]}", "stateUrl": links(game_id)["self"], "legalActionsUrl": links(game_id)["legalActions"], "boardTextUrl": links(game_id)["boardText"], "waitUrl": links(game_id)["wait"], "actionUrl": links(game_id)["action"]} for p in state.players}
+    human = payload.humanPlayer if payload.humanPlayer in state.players else state.players[0]
+    return {"gameId": game_id, "turn": state.turn, "browserUrl": player_urls[human], "spectatorUrl": player_urls["spectator"], "playerUrls": player_urls, "agentConfigs": agent_configs}
 
 
 def require_game(game_id: str):
@@ -112,11 +121,14 @@ def get_legal(game_id: str, authorization: str | None = Header(default=None)) ->
 def board_text(game_id: str, authorization: str | None = Header(default=None)) -> str:
     state = require_game(game_id)
     viewer = token_for(state.tokens, authorization)
-    rows = [f"Monopoly Lite {state.id} v{state.version}", f"Turn: {state.names.get(state.turn)} phase={state.phase}"]
+    rows = [f"Panda Capital {state.id} v{state.version}", f"Turn: {state.names.get(state.turn)} phase={state.phase}"]
     for p in state.players:
         ps = state.player_state[p]
-        rows.append(f"{state.names[p]}: cash €{ps.cash}, pos {ps.position} {BOARD[ps.position].name}, net €{net_worth(state,p)}")
-    rows.append("Owned: " + ", ".join(f"{BOARD[i].name}->{state.names[o]}" for i, o in state.owners.items()) or "none")
+        jail = f", jail={ps.jail_turns}" if ps.jail_turns else ""
+        rows.append(f"{p} {state.names[p]}: cash €{ps.cash}, pos {ps.position} {BOARD[ps.position].name}, net €{net_worth(state,p)}, active={ps.active}{jail}")
+    owned = ", ".join(f"{i}:{BOARD[i].name}->{state.names[o]} buildings={state.buildings.get(i,0)} rent={rent_for(state, BOARD[i])}" for i, o in sorted(state.owners.items()))
+    rows.append("Owned: " + (owned or "none"))
+    rows.append("Board: " + " | ".join(f"{s.id}:{s.name}({s.kind}{","+s.color if s.color else ""})" for s in BOARD))
     rows.append("Legal: " + str(legal_actions(state, viewer)))
     return "\n".join(rows)
 
@@ -133,50 +145,69 @@ def post_action(game_id: str, payload: ActionIn, authorization: str | None = Hea
     state = require_game(game_id)
     viewer = token_for(state.tokens, authorization)
     try:
-        apply_action(state, viewer, {"type": payload.type})
+        action = {"type": payload.type}
+        if payload.spaceId is not None:
+            action["spaceId"] = payload.spaceId
+        apply_action(state, viewer, action)
     except IllegalAction as exc:
         raise HTTPException(400, str(exc)) from exc
     save_game(state)
     return public_state(state, viewer)
 
 
-def _clawd_should_buy(state) -> bool:
+def _bot_should_buy(state, player: str) -> bool:
     space_id = state.pending_space
     if space_id is None:
         return False
     space = BOARD[space_id]
-    cash = state.player_state["p2"].cash
+    cash = state.player_state[player].cash
     if cash < space.price:
         return False
-    # Clawd is aggressive on railroads/utilities and set-completion, otherwise keeps a small buffer.
     if space.kind in {"railroad", "utility"}:
         return cash - space.price >= 100
     color_mates = [s.id for s in BOARD if s.color == space.color and s.kind == space.kind and s.id != space.id]
-    if color_mates and any(state.owners.get(i) == "p2" for i in color_mates):
+    if color_mates and any(state.owners.get(i) == player for i in color_mates):
         return cash - space.price >= 50
     return cash - space.price >= 250
 
 
-@app.post("/api/games/{game_id}/clawd-turn")
-def clawd_turn(game_id: str, authorization: str | None = Header(default=None)) -> dict:
+def _bot_build_action(state, player: str) -> dict | None:
+    actions = legal_actions(state, player)
+    builds = [a for a in actions if a["type"] == "build"]
+    if not builds:
+        return None
+    return sorted(builds, key=lambda a: BOARD[a["spaceId"]].price, reverse=True)[0]
+
+
+@app.post("/api/games/{game_id}/bot-turn")
+def bot_turn(game_id: str, authorization: str | None = Header(default=None)) -> dict:
     state = require_game(game_id)
     viewer = token_for(state.tokens, authorization)
-    if viewer not in {"p1", "spectator"}:
-        raise HTTPException(403, "Only the human/spectator side can ask Clawd to move")
+    if viewer not in set(state.players) | {"spectator"}:
+        raise HTTPException(403, "Bad viewer")
+    bot_player = state.turn
+    if bot_player == "p1" or state.phase == "finished":
+        return public_state(state, viewer)
     steps = 0
-    while state.turn == "p2" and state.phase != "finished" and steps < 8:
+    while state.turn == bot_player and state.phase != "finished" and steps < 12:
         steps += 1
         if state.phase == "roll":
-            apply_action(state, "p2", {"type": "roll"})
+            apply_action(state, bot_player, {"type": "roll"})
         elif state.phase == "buy":
-            if _clawd_should_buy(state):
-                apply_action(state, "p2", {"type": "buy"})
-            else:
-                apply_action(state, "p2", {"type": "skip_buy"})
+            apply_action(state, bot_player, {"type": "buy" if _bot_should_buy(state, bot_player) else "skip_buy"})
         elif state.phase == "end":
-            apply_action(state, "p2", {"type": "end_turn"})
+            build = _bot_build_action(state, bot_player)
+            if build and state.player_state[bot_player].cash > 500:
+                apply_action(state, bot_player, build)
+            else:
+                apply_action(state, bot_player, {"type": "end_turn"})
     save_game(state)
     return public_state(state, viewer)
+
+
+@app.post("/api/games/{game_id}/clawd-turn")
+def clawd_turn(game_id: str, authorization: str | None = Header(default=None)) -> dict:
+    return bot_turn(game_id, authorization)
 
 
 if WEB_DIST_DIR.exists():

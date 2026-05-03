@@ -9,7 +9,7 @@ from typing import Any
 
 from .engine import GameState, PlayerState
 
-DB_PATH = Path(os.environ.get("MONOPOLY_DB_PATH", "data/dev.sqlite3"))
+DB_PATH = Path(os.environ.get("MONOPOLY_DB_PATH", os.environ.get("GAME_DB_PATH", "data/dev.sqlite3")))
 
 
 def _default(value: Any) -> Any:
@@ -39,7 +39,9 @@ def load_game(game_id: str) -> GameState | None:
     if not row:
         return None
     raw = json.loads(row[0])
-    raw["player_state"] = {p: PlayerState(**ps) for p, ps in raw["player_state"].items()}
+    raw["player_state"] = {p: PlayerState(**{**ps, "jail_cards": ps.get("jail_cards", 0), "active": ps.get("active", True)}) for p, ps in raw["player_state"].items()}
     raw["owners"] = {int(k): v for k, v in raw.get("owners", {}).items()}
+    raw["buildings"] = {int(k): int(v) for k, v in raw.get("buildings", {}).items()}
     raw["last_roll"] = tuple(raw["last_roll"]) if raw.get("last_roll") else None
+    raw.setdefault("doubles_in_row", 0)
     return GameState(**raw)
