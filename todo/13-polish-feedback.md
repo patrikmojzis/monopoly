@@ -26,3 +26,34 @@ Source: Telegram live screenshots/playtest, 2026-05-03.
   - later replace emoji tokens with image-gen character tokens / figurines
 - Consider image-gen sprite/art pass for dice/token/character assets after DOM/CSS flow is solid.
 - Continue tightening board readability: tile text is acceptable but still small on full board.
+
+## 2026-05-03 — V2 live QA notes
+
+Commits deployed and QA-smoked:
+
+- `7b18998` — moved primary actions onto board center.
+- `43f94da` — physical side/tokens pass.
+
+Live browser QA confirmed:
+
+- Default 2-player setup still creates Patrik + Clawd only.
+- Board center stage appears inside the board with dice/action prompt.
+- Before roll: center shows dice + Roll CTA.
+- After roll: center updates to Buy/Auction actions.
+- Bottom dock no longer owns primary actions; it is secondary Cards/Trade/status.
+- Menu has separate `Back to board` and `Exit game to setup`.
+- `Exit game to setup` returns to landing/setup `/` without server delete semantics.
+- Token pieces no longer look like grey pill artifacts; chunky token pieces are live.
+- Side tile orientation is live, but should be treated as prototype: physical feel improved, readability may need hybrid tuning.
+
+QA screenshots:
+
+- Initial board/action stage: `/root/.panda/agents/clawd/media/browser/296e5c35-73a4-44af-947c-78c0e90577ff/1777843412245-565d4e64-496d-454b-9b0b-1ec73f7f225a.png`
+- Menu open: `/root/.panda/agents/clawd/media/browser/296e5c35-73a4-44af-947c-78c0e90577ff/1777843432755-20d6097a-0a72-4e7a-bcf2-4c5511be48d9.png`
+- After roll: `/root/.panda/agents/clawd/media/browser/296e5c35-73a4-44af-947c-78c0e90577ff/1777843460284-cd26c4c7-68b1-457b-9bcf-d5a574650ed0.png`
+- After exit setup: `/root/.panda/agents/clawd/media/browser/296e5c35-73a4-44af-947c-78c0e90577ff/1777843488345-40c98d7f-4a47-42db-abbf-723724d6a56e.png`
+
+Next product call:
+
+- Tune side-tile orientation/readability before deeper feature work if Patrik says it feels weird.
+- Otherwise continue V2-B/V2-C: explicit lobby seat model + token picker.
