@@ -232,3 +232,19 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .actions h2 { font-size: 1rem; }
   .action-btn { min-height: 52px; font-size: .96rem; }
 }
+
+/* Iteration pass 3: tappable board + deed card. */
+.tile { cursor: pointer; text-align: left; font: inherit; }
+.tile.selected { outline: 3px solid rgba(250,204,21,.95); outline-offset: -3px; z-index: 3; transform: scale(1.025); }
+.deed-card { overflow: hidden; padding: 0; display: grid; grid-template-columns: 12px 1fr; background: linear-gradient(135deg, #fff8e8, #eadfca); color: #18202b; border-color: rgba(24,32,43,.35); }
+.deed-stripe { min-height: 100%; }
+.deed-body { padding: 14px; }
+.deed-card .eyebrow { color: #7c2d12; }
+.deed-card h2 { margin: 0 0 10px; font-family: Georgia, "Times New Roman", serif; color: #111827; }
+.deed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.deed-grid span { display: grid; gap: 2px; background: rgba(255,255,255,.55); border: 1px solid rgba(24,32,43,.12); border-radius: 10px; padding: 8px; color: #64748b; text-transform: uppercase; font-size: .68rem; letter-spacing: .05em; }
+.deed-grid strong { color: #111827; text-transform: none; letter-spacing: 0; font-size: .86rem; }
+@media (max-width: 760px) {
+  .deed-card { position: sticky; bottom: 96px; z-index: 18; box-shadow: 0 -10px 38px rgba(0,0,0,.28); }
+  .deed-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}

@@ -26,6 +26,7 @@ function App() {
   const [names, setNames] = useState(["Patrik", "Clawd", "Angelina", "Luna"]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
 
   async function start() {
     setBusy(true);
@@ -90,6 +91,7 @@ function App() {
   }, [gameId, token, state?.phase]);
 
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
+  const selectedSpace = state ? state.board[selectedSpaceId ?? state.pendingSpace ?? state.playerState[state.turn].position] : null;
 
   if (!state) {
     return <main className="landing">
@@ -136,7 +138,7 @@ function App() {
     <CurrentSpot state={state} />
 
     <section className="layout classic-layout">
-      <div className="board-wrap"><Board state={state} /><BoardLegend /></div>
+      <div className="board-wrap"><Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} />{selectedSpace && <DeedCard state={state} space={selectedSpace} />}<BoardLegend /></div>
       <aside>
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
@@ -240,7 +242,7 @@ function eventIcon(type: string) {
   return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
 }
 
-function Board({ state }: { state: GameState }) {
+function Board({ state, selectedId, onSelect }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void }) {
   return <div className="classic-board card">
     <div className="board-center">
       <p className="eyebrow">Panda Capital</p>
@@ -248,7 +250,7 @@ function Board({ state }: { state: GameState }) {
       <p>Pass GO: €200 · Jail on 10 · Go to Jail on 30 · Build after owning a color set.</p>
       <div className="dice-mark">⚂ ⚄</div>
     </div>
-    {state.board.map((space) => <Tile key={space.id} space={space} state={state} />)}
+    {state.board.map((space) => <Tile key={space.id} space={space} state={state} selected={selectedId === space.id} onSelect={onSelect} />)}
   </div>;
 }
 
@@ -259,11 +261,11 @@ function tileStyle(id: number): React.CSSProperties {
   return { gridColumn: 11, gridRow: id - 29, "--gc": 11, "--gr": id - 29 } as React.CSSProperties;
 }
 
-function Tile({ space, state }: { space: Space; state: GameState }) {
+function Tile({ space, state, selected, onSelect }: { space: Space; state: GameState; selected: boolean; onSelect: (id: number) => void }) {
   const owner = state.owners[String(space.id)];
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   const buildings = state.buildings[String(space.id)] ?? 0;
-  return <div className={`tile classic-tile ${space.kind}`} style={tileStyle(space.id)}>
+  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span>
     <strong title={space.name}>{space.name}</strong>
@@ -271,7 +273,28 @@ function Tile({ space, state }: { space: Space; state: GameState }) {
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
     {owner && <em>{state.names[owner]}</em>}
     <div className="tokens">{occupants.map((p) => <span key={p}>{emojiFor(state, p)}</span>)}</div>
-  </div>;
+  </button>;
+}
+
+function DeedCard({ state, space }: { state: GameState; space: Space }) {
+  const owner = state.owners[String(space.id)];
+  const buildings = state.buildings[String(space.id)] ?? 0;
+  const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
+  return <section className="card deed-card">
+    <div className="deed-stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "linear-gradient(135deg,#facc15,#fb923c)" }} />
+    <div className="deed-body">
+      <p className="eyebrow">Deed / políčko #{space.id}</p>
+      <h2>{space.name}</h2>
+      <div className="deed-grid">
+        <span>Typ <strong>{space.kind.replace(/_/g, " ")}</strong></span>
+        {space.price > 0 && <span>Cena <strong>€{space.price}</strong></span>}
+        {space.isBuyable && <span>Nájom <strong>€{space.currentRent || space.rent || "dice"}</strong></span>}
+        {owner && <span>Majiteľ <strong>{emojiFor(state, owner)} {state.names[owner]}</strong></span>}
+        {buildings > 0 && <span>Domy <strong>{buildings === 5 ? "hotel" : buildings}</strong></span>}
+        {occupants.length > 0 && <span>Na políčku <strong>{occupants.map((p) => `${emojiFor(state, p)} ${state.names[p]}`).join(", ")}</strong></span>}
+      </div>
+    </div>
+  </section>;
 }
 
 function PlayerPanel({ state, player }: { state: GameState; player: Player }) {
