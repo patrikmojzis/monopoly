@@ -185,6 +185,11 @@ if WEB_DIST_DIR.exists():
 
 @app.get("/{full_path:path}", include_in_schema=False)
 def spa(full_path: str):
+    # Serve Vite public-root assets such as /panda-capital-key-art.png, then fall back to SPA index.
+    requested = (WEB_DIST_DIR / full_path).resolve()
+    dist_root = WEB_DIST_DIR.resolve()
+    if full_path and requested.is_file() and str(requested).startswith(str(dist_root)):
+        return FileResponse(requested)
     index = WEB_DIST_DIR / "index.html"
     if index.exists():
         return FileResponse(index)
