@@ -5,7 +5,7 @@ import random
 from typing import Literal
 
 Player = str
-Phase = Literal["roll", "buy", "end", "finished"]
+Phase = Literal["roll", "buy", "auction", "end", "finished"]
 GO_MONEY = 200
 START_CASH = 1500
 MAX_PLAYERS = 4
@@ -110,9 +110,11 @@ class GameState:
     player_state: dict[Player, PlayerState] = field(default_factory=dict)
     owners: dict[int, Player] = field(default_factory=dict)
     buildings: dict[int, int] = field(default_factory=dict)  # 0..5 (5=hotel)
+    mortgaged: dict[int, bool] = field(default_factory=dict)
     last_roll: tuple[int, int] | None = None
     doubles_in_row: int = 0
     pending_space: int | None = None
+    auction: dict | None = None
     winner: Player | None = None
     version: int = 0
     tokens: dict[str, str] = field(default_factory=dict)
@@ -154,6 +156,81 @@ def next_player(state: GameState, player: Player) -> Player:
     return player
 
 
+def next_auction_player(state: GameState, current: Player) -> Player | None:
+    if not state.auction:
+        return None
+    active = [p for p in state.players if p in state.auction.get("active", []) and state.player_state[p].active]
+    if not active:
+        return None
+    start = state.players.index(current) if current in state.players else -1
+    for step in range(1, len(state.players) + 1):
+        candidate = state.players[(start + step) % len(state.players)]
+        if candidate in active:
+            return candidate
+    return active[0]
+
+
+def start_auction(state: GameState, space_id: int, after_turn: Player) -> None:
+    space = BOARD[space_id]
+    bidders = [p for p in active_players(state) if state.player_state[p].cash > 0]
+    state.auction = {"spaceId": space_id, "currentBid": 0, "highBidder": None, "active": bidders, "afterTurn": after_turn}
+    state.pending_space = space_id
+    state.phase = "auction"
+    state.turn = bidders[0] if bidders else after_turn
+    state.history.append(event(state, "auction", after_turn, f"Dražba začína: {space.name}. Banka čaká na chaos."))
+    if not bidders:
+        close_auction(state)
+
+
+def auction_bid_options(state: GameState, player: Player) -> list[int]:
+    if not state.auction:
+        return []
+    current = int(state.auction.get("currentBid") or 0)
+    cash = state.player_state[player].cash
+    minimum = current + (10 if current < 100 else 25)
+    options = []
+    for amount in (minimum, current + 50, current + 100):
+        if amount > current and amount <= cash and amount not in options:
+            options.append(amount)
+    return sorted(options)
+
+
+def close_auction(state: GameState) -> None:
+    if not state.auction:
+        return
+    space_id = int(state.auction["spaceId"])
+    space = BOARD[space_id]
+    winner = state.auction.get("highBidder")
+    bid = int(state.auction.get("currentBid") or 0)
+    after_turn = state.auction.get("afterTurn") or state.turn
+    if winner and bid > 0:
+        state.player_state[winner].cash -= bid
+        state.owners[space_id] = winner
+        state.history.append(event(state, "auction_win", winner, f"{state.names[winner]} vyhral dražbu {space.name} za €{bid}."))
+        check_bankruptcy_and_winner(state, winner)
+    else:
+        state.history.append(event(state, "auction", after_turn, f"Dražba {space.name} skončila bez kupca. Banka si ho nechala."))
+    state.auction = None
+    state.pending_space = None
+    state.turn = after_turn
+    state.phase = "end" if state.phase != "finished" else "finished"
+
+
+def has_buildings_in_color(state: GameState, color: str | None) -> bool:
+    return any(state.buildings.get(i, 0) > 0 for i in color_spaces(color))
+
+
+def can_transfer_property(state: GameState, space_id: int) -> bool:
+    if not 0 <= space_id < len(BOARD):
+        return False
+    space = BOARD[space_id]
+    if state.buildings.get(space_id, 0) > 0:
+        return False
+    if space.kind == "property" and has_buildings_in_color(state, space.color):
+        return False
+    return True
+
+
 def color_spaces(color: str | None) -> list[int]:
     return [s.id for s in BOARD if s.kind == "property" and s.color == color]
 
@@ -163,17 +240,56 @@ def owns_color_set(state: GameState, player: Player, color: str | None) -> bool:
     return bool(spaces) and all(state.owners.get(i) == player for i in spaces)
 
 
+def mortgage_value(space: Space) -> int:
+    return space.price // 2
+
+
+def unmortgage_cost(space: Space) -> int:
+    return mortgage_value(space) + max(1, space.price // 10)
+
+
+def can_mortgage(state: GameState, player: Player, space_id: int) -> bool:
+    if not 0 <= space_id < len(BOARD):
+        return False
+    space = BOARD[space_id]
+    if space.kind not in BUYABLE or state.owners.get(space_id) != player or state.mortgaged.get(space_id):
+        return False
+    if space.kind == "property" and any(state.buildings.get(i, 0) > 0 for i in color_spaces(space.color)):
+        return False
+    return True
+
+
+def can_unmortgage(state: GameState, player: Player, space_id: int) -> bool:
+    if not 0 <= space_id < len(BOARD):
+        return False
+    space = BOARD[space_id]
+    return space.kind in BUYABLE and state.owners.get(space_id) == player and state.mortgaged.get(space_id, False) and state.player_state[player].cash >= unmortgage_cost(space)
+
+
 def can_build_on(state: GameState, player: Player, space_id: int) -> bool:
     if not 0 <= space_id < len(BOARD):
         return False
     space = BOARD[space_id]
-    if space.kind != "property" or state.owners.get(space_id) != player or not owns_color_set(state, player, space.color):
+    if space.kind != "property" or state.owners.get(space_id) != player or state.mortgaged.get(space_id) or not owns_color_set(state, player, space.color):
+        return False
+    if any(state.mortgaged.get(i) for i in color_spaces(space.color)):
         return False
     if state.buildings.get(space_id, 0) >= 5 or state.player_state[player].cash < space.house_cost:
         return False
     group = color_spaces(space.color)
     mine = [state.buildings.get(i, 0) for i in group]
     return state.buildings.get(space_id, 0) <= min(mine)  # build evenly
+
+
+def can_sell_building(state: GameState, player: Player, space_id: int) -> bool:
+    if not 0 <= space_id < len(BOARD):
+        return False
+    space = BOARD[space_id]
+    if space.kind != "property" or state.owners.get(space_id) != player or state.buildings.get(space_id, 0) <= 0:
+        return False
+    group = color_spaces(space.color)
+    mine = [state.buildings.get(i, 0) for i in group]
+    return state.buildings.get(space_id, 0) >= max(mine)  # sell evenly in reverse
 
 
 def legal_actions(state: GameState, player: Player) -> list[dict]:
@@ -190,22 +306,39 @@ def legal_actions(state: GameState, player: Player) -> list[dict]:
         return actions
     if state.phase == "buy" and state.pending_space is not None:
         space = BOARD[state.pending_space]
-        actions = [{"type": "skip_buy", "spaceId": space.id, "label": f"Nekúpiť {space.name}"}]
+        actions = [{"type": "skip_buy", "spaceId": space.id, "label": f"Dražiť {space.name} namiesto kúpy"}]
         if ps.cash >= space.price:
             actions.insert(0, {"type": "buy", "spaceId": space.id, "label": f"Kúpiť {space.name} za €{space.price}"})
         return actions
+    if state.phase == "auction" and state.auction:
+        space = BOARD[int(state.auction["spaceId"])]
+        actions = [{"type": "pass_auction", "spaceId": space.id, "label": f"Pass v dražbe {space.name}"}]
+        for amount in auction_bid_options(state, player):
+            actions.insert(0, {"type": "bid_auction", "spaceId": space.id, "amount": amount, "label": f"Bid €{amount} za {space.name}"})
+        return actions
     if state.phase == "end":
         actions = [{"type": "end_turn", "label": "Ukončiť ťah"}]
+        if len(active_players(state)) > 1:
+            actions.insert(0, {"type": "trade", "label": "Trade / transfer desk"})
         for i in range(len(BOARD)):
+            if can_sell_building(state, player, i):
+                b = state.buildings.get(i, 0)
+                actions.insert(0, {"type": "sell_building", "spaceId": i, "label": f"Predať {'hotel' if b == 5 else 'dom'} na {BOARD[i].name} za €{BOARD[i].house_cost // 2}"})
+            if can_unmortgage(state, player, i):
+                actions.insert(0, {"type": "unmortgage", "spaceId": i, "label": f"Odkúpiť späť {BOARD[i].name} za €{unmortgage_cost(BOARD[i])}"})
+            if can_mortgage(state, player, i):
+                actions.insert(0, {"type": "mortgage", "spaceId": i, "label": f"Založiť {BOARD[i].name} za €{mortgage_value(BOARD[i])}"})
             if can_build_on(state, player, i):
                 b = state.buildings.get(i, 0)
-                actions.insert(0, {"type": "build", "spaceId": i, "label": f"Build {'hotel' if b == 4 else 'house'} on {BOARD[i].name} (€{BOARD[i].house_cost})"})
+                actions.insert(0, {"type": "build", "spaceId": i, "label": f"Postaviť {'hotel' if b == 4 else 'dom'} na {BOARD[i].name} (€{BOARD[i].house_cost})"})
         return actions
     return []
 
 
 def rent_for(state: GameState, space: Space, roll_total: int | None = None) -> int:
     owner = state.owners.get(space.id)
+    if state.mortgaged.get(space.id):
+        return 0
     if not owner:
         return 0
     if space.kind == "utility":
@@ -225,7 +358,7 @@ def rent_for(state: GameState, space: Space, roll_total: int | None = None) -> i
 
 def net_worth(state: GameState, player: Player) -> int:
     ps = state.player_state[player]
-    assets = sum(BOARD[i].price for i, owner in state.owners.items() if owner == player)
+    assets = sum((mortgage_value(BOARD[i]) if state.mortgaged.get(i) else BOARD[i].price) for i, owner in state.owners.items() if owner == player)
     houses = sum(state.buildings.get(i, 0) * (BOARD[i].house_cost // 2) for i, owner in state.owners.items() if owner == player)
     return ps.cash + assets + houses
 
@@ -237,7 +370,9 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
     for candidate in allowed:
         if candidate["type"] != action_type:
             continue
-        if candidate["type"] == "build" and action.get("spaceId") != candidate.get("spaceId"):
+        if candidate["type"] in {"build", "sell_building", "mortgage", "unmortgage"} and action.get("spaceId") != candidate.get("spaceId"):
+            continue
+        if candidate["type"] == "bid_auction" and action.get("amount") != candidate.get("amount"):
             continue
         matched = True
         break
@@ -303,9 +438,102 @@ def apply_action(state: GameState, player: Player, action: dict, *, seed: int | 
 
     if action_type == "skip_buy":
         space = BOARD[state.pending_space or 0]
-        state.pending_space = None
-        state.phase = "end"
-        state.history.append(event(state, "skip_buy", player, f"{state.names[player]} nekúpil {space.name}."))
+        state.history.append(event(state, "skip_buy", player, f"{state.names[player]} nekúpil {space.name}. Ide do dražby."))
+        start_auction(state, space.id, player)
+        return bump(state)
+
+    if action_type == "bid_auction":
+        if not state.auction:
+            raise IllegalAction("No auction running")
+        amount = int(action.get("amount"))
+        state.auction["currentBid"] = amount
+        state.auction["highBidder"] = player
+        space = BOARD[int(state.auction["spaceId"])]
+        state.history.append(event(state, "auction_bid", player, f"{state.names[player]} biduje €{amount} za {space.name}."))
+        nxt = next_auction_player(state, player)
+        if nxt is None:
+            close_auction(state)
+        else:
+            state.turn = nxt
+        return bump(state)
+
+    if action_type == "pass_auction":
+        if not state.auction:
+            raise IllegalAction("No auction running")
+        active = [p for p in state.auction.get("active", []) if p != player]
+        state.auction["active"] = active
+        space = BOARD[int(state.auction["spaceId"])]
+        state.history.append(event(state, "auction_pass", player, f"{state.names[player]} passol dražbu {space.name}."))
+        high = state.auction.get("highBidder")
+        if not active or (high and set(active) <= {high}):
+            close_auction(state)
+        else:
+            nxt = next_auction_player(state, player)
+            state.turn = nxt or active[0]
+        return bump(state)
+
+    if action_type == "sell_building":
+        space_id = int(action.get("spaceId"))
+        space = BOARD[space_id]
+        state.buildings[space_id] = max(0, state.buildings.get(space_id, 0) - 1)
+        if state.buildings[space_id] == 0:
+            state.buildings.pop(space_id, None)
+        refund = space.house_cost // 2
+        state.player_state[player].cash += refund
+        state.history.append(event(state, "sell_building", player, f"{state.names[player]} predal building na {space.name} za €{refund}."))
+        return bump(state)
+
+    if action_type == "trade":
+        if state.phase != "end":
+            raise IllegalAction("Trades only at end of turn")
+        other = action.get("toPlayer")
+        if other not in state.players or other == player or not state.player_state[other].active:
+            raise IllegalAction("Bad trade partner")
+        cash_from = max(0, int(action.get("cashFrom") or 0))
+        cash_to = max(0, int(action.get("cashTo") or 0))
+        props_from = [int(i) for i in action.get("propertiesFrom") or []]
+        props_to = [int(i) for i in action.get("propertiesTo") or []]
+        if state.player_state[player].cash < cash_from or state.player_state[other].cash < cash_to:
+            raise IllegalAction("Not enough cash for trade")
+        for sid in props_from:
+            if state.owners.get(sid) != player or not can_transfer_property(state, sid):
+                raise IllegalAction("Cannot trade one of your properties")
+        for sid in props_to:
+            if state.owners.get(sid) != other or not can_transfer_property(state, sid):
+                raise IllegalAction("Cannot trade one of partner properties")
+        if cash_from == cash_to == 0 and not props_from and not props_to:
+            raise IllegalAction("Empty trade")
+        state.player_state[player].cash -= cash_from
+        state.player_state[other].cash += cash_from
+        state.player_state[other].cash -= cash_to
+        state.player_state[player].cash += cash_to
+        for sid in props_from:
+            state.owners[sid] = other
+        for sid in props_to:
+            state.owners[sid] = player
+        left = ", ".join(BOARD[i].name for i in props_from) or "nič"
+        right = ", ".join(BOARD[i].name for i in props_to) or "nič"
+        state.history.append(event(state, "trade", player, f"Trade: {state.names[player]} dal {left} + €{cash_from}; {state.names[other]} dal {right} + €{cash_to}."))
+        check_bankruptcy_and_winner(state, player)
+        check_bankruptcy_and_winner(state, other)
+        return bump(state)
+
+    if action_type == "mortgage":
+        space_id = int(action.get("spaceId"))
+        space = BOARD[space_id]
+        state.mortgaged[space_id] = True
+        state.player_state[player].cash += mortgage_value(space)
+        state.history.append(event(state, "mortgage", player, f"{state.names[player]} založil {space.name} a získal €{mortgage_value(space)}. Nájom je vypnutý."))
+        return bump(state)
+
+    if action_type == "unmortgage":
+        space_id = int(action.get("spaceId"))
+        space = BOARD[space_id]
+        cost = unmortgage_cost(space)
+        state.player_state[player].cash -= cost
+        state.mortgaged.pop(space_id, None)
+        state.history.append(event(state, "unmortgage", player, f"{state.names[player]} odkúpil späť {space.name} za €{cost}. Nájom znovu beží."))
+        check_bankruptcy_and_winner(state, player)
         return bump(state)
 
     if action_type == "build":
@@ -404,6 +632,7 @@ def check_bankruptcy_and_winner(state: GameState, debtor: Player | None = None) 
                 if owner == p:
                     del state.owners[sid]
                     state.buildings.pop(sid, None)
+                    state.mortgaged.pop(sid, None)
             state.history.append(event(state, "bankrupt", p, f"{state.names[p]} went bankrupt. Properties return pre bank."))
     active = active_players(state)
     if len(active) == 1:

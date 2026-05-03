@@ -53,5 +53,51 @@ def test_go_to_jail_and_next_player_multiplayer():
     apply_action(state, 'p1', {'type': 'roll'}, seed=4)  # 2+3 => space 29, buy phase maybe not jail
     if state.phase == 'buy':
         apply_action(state, 'p1', {'type': 'skip_buy'})
+        while state.phase == 'auction':
+            apply_action(state, state.turn, {'type': 'pass_auction'})
     apply_action(state, 'p1', {'type': 'end_turn'})
     assert state.turn == 'p2'
+
+
+
+def test_skip_buy_starts_auction_and_bidder_can_win():
+    state = initial_state('g')
+    state.phase = 'buy'
+    state.pending_space = 5
+    apply_action(state, 'p1', {'type': 'skip_buy'})
+    assert state.phase == 'auction'
+    bid = next(a for a in legal_actions(state, state.turn) if a['type'] == 'bid_auction')
+    bidder = state.turn
+    amount = bid['amount']
+    apply_action(state, bidder, {'type': 'bid_auction', 'spaceId': 5, 'amount': amount})
+    while state.phase == 'auction':
+        apply_action(state, state.turn, {'type': 'pass_auction'})
+    assert state.owners[5] == bidder
+    assert state.player_state[bidder].cash == 1500 - amount
+    assert state.phase == 'end'
+
+
+def test_mortgage_unmortgage_disables_rent():
+    state = initial_state('g')
+    state.owners[5] = 'p1'
+    state.phase = 'end'
+    before = state.player_state['p1'].cash
+    apply_action(state, 'p1', {'type': 'mortgage', 'spaceId': 5})
+    assert state.mortgaged[5] is True
+    assert state.player_state['p1'].cash == before + 100
+    assert rent_for(state, BOARD[5]) == 0
+    apply_action(state, 'p1', {'type': 'unmortgage', 'spaceId': 5})
+    assert 5 not in state.mortgaged
+    assert rent_for(state, BOARD[5]) == 25
+
+
+def test_trade_transfers_cash_and_properties():
+    state = initial_state('g')
+    state.owners[5] = 'p1'
+    state.owners[6] = 'p2'
+    state.phase = 'end'
+    apply_action(state, 'p1', {'type': 'trade', 'toPlayer': 'p2', 'cashFrom': 50, 'cashTo': 20, 'propertiesFrom': [5], 'propertiesTo': [6]})
+    assert state.owners[5] == 'p2'
+    assert state.owners[6] == 'p1'
+    assert state.player_state['p1'].cash == 1470
+    assert state.player_state['p2'].cash == 1530

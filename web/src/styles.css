@@ -311,3 +311,41 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
   .portfolio-strip { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .rules-card { font-size: .9rem; }
 }
+
+/* Iteration pass 15+: deeper Monopoly-ish rules: auctions, mortgage, trades + mobile QA fixes. */
+.auction-banner { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; border-color: rgba(250,204,21,.35); background: linear-gradient(135deg, rgba(120,53,15,.55), rgba(15,23,42,.92)); }
+.auction-banner strong { color: #fef3c7; }
+.classic-tile.mortgaged { filter: grayscale(.25); background: repeating-linear-gradient(135deg, rgba(15,23,42,.92), rgba(15,23,42,.92) 8px, rgba(71,85,105,.72) 8px, rgba(71,85,105,.72) 16px); }
+.mortgage-badge { justify-self: center; color: #fef3c7 !important; background: rgba(127,29,29,.9); border-radius: 999px; padding: 2px 6px; font-size: .58rem !important; letter-spacing: .08em; }
+.mortgaged-chip { background: rgba(127,29,29,.22) !important; color: #fecaca !important; }
+.action-mortgage, .action-unmortgage, .action-bid_auction, .action-pass_auction, .action-trade { border: 1px solid rgba(250,204,21,.2); }
+.action-mortgage { background: linear-gradient(135deg, #7c2d12, #a16207) !important; color: #fff7ed !important; }
+.action-unmortgage { background: linear-gradient(135deg, #075985, #0e7490) !important; color: #ecfeff !important; }
+.action-bid_auction { background: linear-gradient(135deg, #facc15, #fb923c) !important; color: #111827 !important; }
+.action-pass_auction { background: rgba(148,163,184,.14) !important; color: #e2e8f0 !important; }
+.action-trade { background: linear-gradient(135deg, #8b5cf6, #ec4899) !important; color: white !important; }
+.trade-desk { margin-top: 10px; padding: 10px; border-radius: 16px; background: rgba(2,6,23,.34); border: 1px solid rgba(255,255,255,.08); }
+.trade-desk summary { cursor: pointer; font-weight: 900; color: #f5d0fe; }
+.trade-desk label { display: grid; gap: 4px; color: #cbd5e1; font-size: .86rem; margin: 8px 0; }
+.trade-desk select, .trade-desk input { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(15,23,42,.82); color: #f8fafc; padding: 8px; }
+.trade-cash { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trade-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.trade-columns > div { padding: 8px; border-radius: 12px; background: rgba(15,23,42,.54); max-height: 170px; overflow: auto; }
+.trade-columns label { display: block; margin: 7px 0; }
+.app-shell { padding-bottom: 150px; }
+@media (max-width: 760px) {
+  .mobile-action-dock { padding: 8px 9px; gap: 6px; }
+  .dock-summary { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; font-size: .82rem; }
+  .dock-summary span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .dock-buttons { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+  .dock-buttons .action-btn { min-height: 44px; font-size: .88rem; }
+  .dock-buttons .ghost { min-height: 36px; padding-inline: 10px; }
+  .deed-card { bottom: 118px; }
+  .current-spot { top: 54px; }
+  .board-controls { top: 100px; }
+  .table-pulse { grid-template-columns: 1fr 1fr; font-size: .86rem; }
+  .classic-tile strong { font-size: .62rem; line-height: 1.02; }
+  .classic-tile small { font-size: .55rem; }
+  .trade-cash, .trade-columns { grid-template-columns: 1fr; }
+}
+.action-sell_building { background: linear-gradient(135deg, #78350f, #92400e) !important; color: #fffbeb !important; }

@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .engine import BOARD, BUYABLE, IllegalAction, apply_action, initial_state, legal_actions, net_worth, rent_for
+from .engine import BOARD, BUYABLE, IllegalAction, apply_action, initial_state, legal_actions, mortgage_value, net_worth, rent_for, unmortgage_cost
 from .storage import load_game, save_game
 
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000").rstrip("/")
@@ -28,6 +28,12 @@ class GameCreate(BaseModel):
 class ActionIn(BaseModel):
     type: str
     spaceId: int | None = None
+    amount: int | None = None
+    toPlayer: str | None = None
+    cashFrom: int | None = None
+    cashTo: int | None = None
+    propertiesFrom: list[int] | None = None
+    propertiesTo: list[int] | None = None
 
 
 @app.get("/api/health")
@@ -70,10 +76,12 @@ def public_state(state, viewer: str) -> dict:
         "playerState": {p: {"cash": ps.cash, "position": ps.position, "jailTurns": ps.jail_turns, "jailCards": ps.jail_cards, "active": ps.active, "netWorth": net_worth(state, p)} for p, ps in state.player_state.items()},
         "owners": state.owners,
         "buildings": state.buildings,
+        "mortgaged": state.mortgaged,
+        "auction": state.auction,
         "lastRoll": state.last_roll,
         "doublesInRow": state.doubles_in_row,
         "pendingSpace": state.pending_space,
-        "board": [asdict(space) | {"currentRent": rent_for(state, space, state.last_roll[0] + state.last_roll[1] if state.last_roll else None), "isBuyable": space.kind in BUYABLE} for space in BOARD],
+        "board": [asdict(space) | {"currentRent": rent_for(state, space, state.last_roll[0] + state.last_roll[1] if state.last_roll else None), "isBuyable": space.kind in BUYABLE, "mortgageValue": mortgage_value(space) if space.kind in BUYABLE else 0, "unmortgageCost": unmortgage_cost(space) if space.kind in BUYABLE else 0} for space in BOARD],
         "legalActions": legal_actions(state, viewer) if viewer in state.players else [],
         "history": state.history[-30:],
         "links": links(state.id),
@@ -146,8 +154,10 @@ def post_action(game_id: str, payload: ActionIn, authorization: str | None = Hea
     viewer = token_for(state.tokens, authorization)
     try:
         action = {"type": payload.type}
-        if payload.spaceId is not None:
-            action["spaceId"] = payload.spaceId
+        for key in ("spaceId", "amount", "toPlayer", "cashFrom", "cashTo", "propertiesFrom", "propertiesTo"):
+            value = getattr(payload, key)
+            if value is not None:
+                action[key] = value
         apply_action(state, viewer, action)
     except IllegalAction as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -179,6 +189,19 @@ def _bot_build_action(state, player: str) -> dict | None:
     return sorted(builds, key=lambda a: BOARD[a["spaceId"]].price, reverse=True)[0]
 
 
+def _bot_auction_action(state, player: str) -> dict:
+    actions = legal_actions(state, player)
+    bids = [a for a in actions if a["type"] == "bid_auction"]
+    if not bids:
+        return {"type": "pass_auction"}
+    space = BOARD[int(state.auction["spaceId"])] if state.auction else None
+    cash = state.player_state[player].cash
+    owns_mate = bool(space and any(s.kind == space.kind and s.color == space.color and state.owners.get(s.id) == player for s in BOARD if s.id != space.id))
+    max_price = int((space.price if space else 100) * (1.15 if owns_mate else 0.75))
+    affordable = [a for a in bids if int(a.get("amount", 999999)) <= max_price and cash - int(a.get("amount", 0)) >= 80]
+    return affordable[0] if affordable else {"type": "pass_auction"}
+
+
 @app.post("/api/games/{game_id}/bot-turn")
 def bot_turn(game_id: str, authorization: str | None = Header(default=None)) -> dict:
     state = require_game(game_id)
@@ -195,6 +218,8 @@ def bot_turn(game_id: str, authorization: str | None = Header(default=None)) -> 
             apply_action(state, bot_player, {"type": "roll"})
         elif state.phase == "buy":
             apply_action(state, bot_player, {"type": "buy" if _bot_should_buy(state, bot_player) else "skip_buy"})
+        elif state.phase == "auction":
+            apply_action(state, bot_player, _bot_auction_action(state, bot_player))
         elif state.phase == "end":
             build = _bot_build_action(state, bot_player)
             if build and state.player_state[bot_player].cash > 500:

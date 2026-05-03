@@ -1,5 +1,5 @@
 export type Player = string;
-export type Phase = "roll" | "buy" | "end" | "finished";
+export type Phase = "roll" | "buy" | "auction" | "end" | "finished";
 
 export type Space = {
   id: number;
@@ -12,6 +12,8 @@ export type Space = {
   houseCost: number;
   rents: number[];
   isBuyable: boolean;
+  mortgageValue: number;
+  unmortgageCost: number;
 };
 
 export type PlayerInfo = {
@@ -30,9 +32,15 @@ export type GameAction =
   | { type: "end_turn" }
   | { type: "pay_jail" }
   | { type: "use_jail_card" }
-  | { type: "build"; spaceId: number };
+  | { type: "build"; spaceId: number }
+  | { type: "sell_building"; spaceId: number }
+  | { type: "mortgage"; spaceId: number }
+  | { type: "unmortgage"; spaceId: number }
+  | { type: "bid_auction"; spaceId?: number; amount: number }
+  | { type: "pass_auction"; spaceId?: number }
+  | { type: "trade"; toPlayer: Player; cashFrom?: number; cashTo?: number; propertiesFrom?: number[]; propertiesTo?: number[] };
 
-export type LegalAction = GameAction & { label?: string; spaceId?: number };
+export type LegalAction = GameAction & { label?: string; spaceId?: number; amount?: number };
 
 export type GameState = {
   id: string;
@@ -47,6 +55,8 @@ export type GameState = {
   playerState: Record<string, PlayerInfo>;
   owners: Record<string, Player>;
   buildings: Record<string, number>;
+  mortgaged: Record<string, boolean>;
+  auction: { spaceId: number; currentBid: number; highBidder: Player | null; active: Player[]; afterTurn: Player } | null;
   lastRoll: [number, number] | null;
   doublesInRow: number;
   pendingSpace: number | null;

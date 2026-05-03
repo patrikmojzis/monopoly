@@ -91,6 +91,7 @@ function App() {
   }, [gameId, token, state?.phase]);
 
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
+  const buttonActions = legal.filter((a) => a.type !== "trade");
   const selectedSpace = state ? state.board[selectedSpaceId ?? state.pendingSpace ?? state.playerState[state.turn].position] : null;
 
   if (!state) {
@@ -135,6 +136,7 @@ function App() {
     </section>
 
     <TurnBanner state={state} />
+    <AuctionBanner state={state} />
     <TablePulse state={state} />
     <PortfolioStrip state={state} />
     <RulesCard />
@@ -146,7 +148,8 @@ function App() {
         {state.players.map((p) => <PlayerPanel key={p} state={state} player={p} />)}
         <div className="actions card">
           <h2>Legal actions</h2>
-          {legal.length ? legal.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
+          {buttonActions.length ? buttonActions.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy || !state.canAct}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>) : <p className="muted">No actions for this token right now.</p>}
+          <TradeDesk state={state} act={act} busy={busy} />
           {state.turn !== state.viewer && state.phase !== "finished" && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} play</button>}
           {error && <p className="error">{error}</p>}
         </div>
@@ -154,18 +157,19 @@ function App() {
     </section>
 
     <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
-    <MobileActionDock state={state} legal={legal} busy={busy} act={act} runBot={runBot} />
+    <MobileActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
   </main>;
 }
 
-function MobileActionDock({ state, legal, busy, act, runBot }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void }) {
+function MobileActionDock({ state, legal, busy, act, runBot }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void }) {
   if (state.phase === "finished") return null;
   const latest = state.history[state.history.length - 1]?.message;
   const viewerTurn = state.turn === state.viewer && state.canAct;
+  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building"].includes(a.type)).slice(0, 2);
   return <div className={`mobile-action-dock ${viewerTurn ? "active" : "waiting"}`}>
     <div className="dock-summary"><strong>{viewerTurn ? "Tvoj ťah" : `${state.names[state.turn]} hrá`}</strong><span>{latest ?? "Čakáme na hod."}</span></div>
     <div className="dock-buttons">
-      {viewerTurn && legal.slice(0, 2).map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>)}
+      {viewerTurn && primary.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>)}
       {!viewerTurn && state.turn !== state.viewer && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Bot turn</button>}
       <button className="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>↑ Top</button>
     </div>
@@ -221,6 +225,9 @@ function RulesCard() {
       <li>Keď stojíš na cudzom majetku, platíš nájom automaticky.</li>
       <li>Celá farebná skupina odomkne stavanie domov/hotela.</li>
       <li>Doubles = ideš ešte raz; tri doubles = väzenie, klasika cursed.</li>
+      <li>Ak hráč nekúpi property, ide dražba medzi aktívnymi hráčmi.</li>
+      <li>Majetok vieš založiť/odkúpiť späť; založený majetok neberie nájom.</li>
+      <li>Trade desk umožní cash/property transfery bez budov na skupine.</li>
       <li>Na mobile používaj spodný action dock a pan buttons pri doske.</li>
     </ul>
   </details>;
@@ -240,6 +247,43 @@ function PortfolioStrip({ state }: { state: GameState }) {
 
 function spaceIcon(kind: string) {
   return ({ go: "💰", property: "🏘️", tax: "🧾", chance: "❓", chest: "🎁", jail: "🚔", go_to_jail: "🚨", free_parking: "🛋️", railroad: "🚋", utility: "⚡" } as Record<string, string>)[kind] ?? "▫️";
+}
+
+
+function AuctionBanner({ state }: { state: GameState }) {
+  if (state.phase !== "auction" || !state.auction) return null;
+  const space = state.board[state.auction.spaceId];
+  const high = state.auction.highBidder;
+  return <section className="card auction-banner">
+    <div><span className="label">Auction live</span><strong>🔨 {space.name}</strong></div>
+    <div><span className="label">High bid</span><strong>{high ? `${state.names[high]} · €${state.auction.currentBid}` : "no bids yet"}</strong></div>
+    <div><span className="label">Bidders in</span><strong>{state.auction.active.map((p) => state.names[p]).join(" · ")}</strong></div>
+  </section>;
+}
+
+function TradeDesk({ state, act, busy }: { state: GameState; act: (a: GameAction) => void; busy: boolean }) {
+  const canTrade = state.canAct && state.phase === "end" && state.legalActions.some((a) => a.type === "trade");
+  const partners = state.players.filter((p) => p !== state.viewer && state.playerState[p].active);
+  const [toPlayer, setToPlayer] = useState(partners[0] ?? "");
+  const [cashFrom, setCashFrom] = useState(0);
+  const [cashTo, setCashTo] = useState(0);
+  const [give, setGive] = useState<number[]>([]);
+  const [take, setTake] = useState<number[]>([]);
+  if (!canTrade || !partners.length) return null;
+  const partner = partners.includes(toPlayer) ? toPlayer : partners[0];
+  const myProps = Object.entries(state.owners).filter(([, o]) => o === state.viewer).map(([id]) => state.board[Number(id)]).filter((sp) => (state.buildings[String(sp.id)] ?? 0) === 0);
+  const theirProps = Object.entries(state.owners).filter(([, o]) => o === partner).map(([id]) => state.board[Number(id)]).filter((sp) => (state.buildings[String(sp.id)] ?? 0) === 0);
+  const toggle = (list: number[], id: number) => list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+  return <details className="trade-desk">
+    <summary>🤝 Trade / transfer desk</summary>
+    <label>Partner<select value={partner} onChange={(e) => { setToPlayer(e.target.value); setTake([]); }}>
+      {partners.map((p) => <option key={p} value={p}>{state.names[p]}</option>)}
+    </select></label>
+    <div className="trade-cash"><label>You give €<input type="number" min="0" value={cashFrom} onChange={(e) => setCashFrom(Number(e.target.value || 0))} /></label><label>You get €<input type="number" min="0" value={cashTo} onChange={(e) => setCashTo(Number(e.target.value || 0))} /></label></div>
+    <div className="trade-columns"><div><strong>You give</strong>{myProps.length ? myProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={give.includes(sp.id)} onChange={() => setGive(toggle(give, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div><div><strong>You get</strong>{theirProps.length ? theirProps.map((sp) => <label key={sp.id}><input type="checkbox" checked={take.includes(sp.id)} onChange={() => setTake(toggle(take, sp.id))} /> {sp.name}{state.mortgaged[String(sp.id)] ? " · mortgaged" : ""}</label>) : <small>No free properties.</small>}</div></div>
+    <button className="action-btn action-trade" disabled={busy} onClick={() => act({ type: "trade", toPlayer: partner, cashFrom, cashTo, propertiesFrom: give, propertiesTo: take })}>🤝 Execute agreed trade</button>
+    <p className="muted">Table-trust mode: trade executes immediately. Improved color groups are locked until houses/hotel are gone.</p>
+  </details>;
 }
 
 function TablePulse({ state }: { state: GameState }) {
@@ -334,7 +378,7 @@ function BoardLegend() {
 }
 
 function eventIcon(type: string) {
-  return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
+  return ({ roll: "🎲", buy: "💸", rent: "🏦", card: "🃏", jail: "🚔", go_to_jail: "🚔", build: "🏗️", sell_building: "🏚️", mortgage: "🏦", unmortgage: "🔓", auction: "🔨", auction_bid: "🔨", auction_pass: "✋", auction_win: "🏁", trade: "🤝", finish: "🏆", bankrupt: "💀", go: "💰" } as Record<string, string>)[type] ?? "•";
 }
 
 function Board({ state, selectedId, onSelect }: { state: GameState; selectedId: number | null; onSelect: (id: number) => void }) {
@@ -360,12 +404,14 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
   const owner = state.owners[String(space.id)];
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   const buildings = state.buildings[String(space.id)] ?? 0;
-  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
+  const mortgaged = !!state.mortgaged[String(space.id)];
+  return <button type="button" className={`tile classic-tile ${space.kind} ${selected ? "selected" : ""} ${mortgaged ? "mortgaged" : ""}`} style={tileStyle(space.id)} onClick={() => onSelect(space.id)} aria-label={`Show ${space.name}`}>
     <div className="stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "transparent" }} />
     <span className="tile-id">{space.id}</span><span className="tile-kind-icon">{spaceIcon(space.kind)}</span>
     <strong title={space.name}>{space.name}</strong>
-    {space.price > 0 && <small>€{space.price} · rent €{space.currentRent || space.rent || "dice"}</small>}
+    {space.price > 0 && <small>€{space.price} · {mortgaged ? "mortgaged" : `rent €${space.currentRent || space.rent || "dice"}`}</small>}
     {buildings > 0 && <small className="houses">{buildings === 5 ? "🏨" : "🏠".repeat(buildings)}</small>}
+    {mortgaged && <small className="mortgage-badge">MORTGAGED</small>}
     {owner && <em>{state.names[owner]}</em>}
     <div className="tokens">{occupants.map((p) => <span key={p}>{emojiFor(state, p)}</span>)}</div>
   </button>;
@@ -374,6 +420,7 @@ function Tile({ space, state, selected, onSelect }: { space: Space; state: GameS
 function DeedCard({ state, space }: { state: GameState; space: Space }) {
   const owner = state.owners[String(space.id)];
   const buildings = state.buildings[String(space.id)] ?? 0;
+  const mortgaged = !!state.mortgaged[String(space.id)];
   const occupants = state.players.filter((p) => state.playerState[p].position === space.id);
   return <section className="card deed-card">
     <div className="deed-stripe" style={{ background: space.color ? COLOR[space.color] ?? "#334155" : "linear-gradient(135deg,#facc15,#fb923c)" }} />
@@ -383,7 +430,8 @@ function DeedCard({ state, space }: { state: GameState; space: Space }) {
       <div className="deed-grid">
         <span>Typ <strong>{space.kind.replace(/_/g, " ")}</strong></span>
         {space.price > 0 && <span>Cena <strong>€{space.price}</strong></span>}
-        {space.isBuyable && <span>Nájom <strong>€{space.currentRent || space.rent || "dice"}</strong></span>}
+        {space.isBuyable && <span>Nájom <strong>{mortgaged ? "€0 · mortgaged" : `€${space.currentRent || space.rent || "dice"}`}</strong></span>}
+        {space.isBuyable && <span>Mortgage <strong>€{space.mortgageValue} / back €{space.unmortgageCost}</strong></span>}
         {owner && <span>Majiteľ <strong>{emojiFor(state, owner)} {state.names[owner]}</strong></span>}
         {buildings > 0 && <span>Domy <strong>{buildings === 5 ? "hotel" : buildings}</strong></span>}
         {occupants.length > 0 && <span>Na políčku <strong>{occupants.map((p) => `${emojiFor(state, p)} ${state.names[p]}`).join(", ")}</strong></span>}
@@ -403,7 +451,7 @@ function PlayerPanel({ state, player }: { state: GameState; player: Player }) {
     <p>Position: {state.board[info.position].name}</p>
     {info.jailTurns > 0 && <p>🚔 Jail turns: {info.jailTurns}</p>}
     {info.jailCards > 0 && <p>🎟️ Rate-limit passes: {info.jailCards}</p>}
-    <div className="owned">{owned.length ? owned.map((s) => <span key={s.id} style={{ borderColor: s.color ? COLOR[s.color] : undefined }}>{s.name}</span>) : <small>No properties yet.</small>}</div>
+    <div className="owned">{owned.length ? owned.map((s) => <span key={s.id} className={state.mortgaged[String(s.id)] ? "mortgaged-chip" : ""} style={{ borderColor: s.color ? COLOR[s.color] : undefined }}>{s.name}{state.mortgaged[String(s.id)] ? " · M" : ""}</span>) : <small>No properties yet.</small>}</div>
   </div>;
 }
 
@@ -412,8 +460,10 @@ function emojiFor(state: GameState, player: Player) {
   return PLAYER_EMOJI[idx] ?? "🎲";
 }
 
-function cleanAction(a: GameAction & { label?: string }): GameAction {
-  if (a.type === "build") return { type: "build", spaceId: a.spaceId };
+function cleanAction(a: GameAction & { label?: string; spaceId?: number; amount?: number }): GameAction {
+  if (["build", "sell_building", "mortgage", "unmortgage"].includes(a.type)) return { type: a.type, spaceId: a.spaceId } as GameAction;
+  if (a.type === "bid_auction") return { type: "bid_auction", spaceId: a.spaceId, amount: a.amount } as GameAction;
+  if (a.type === "pass_auction") return { type: "pass_auction", spaceId: a.spaceId } as GameAction;
   return { type: a.type } as GameAction;
 }
 
