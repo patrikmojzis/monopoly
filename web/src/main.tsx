@@ -27,6 +27,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
+  const [autoBots, setAutoBots] = useState(() => localStorage.getItem("panda-capital-autobots") === "1");
 
   async function start() {
     setBusy(true);
@@ -89,6 +90,12 @@ function App() {
     const id = window.setInterval(() => { refresh(); }, 8000);
     return () => window.clearInterval(id);
   }, [gameId, token, state?.phase]);
+  useEffect(() => { localStorage.setItem("panda-capital-autobots", autoBots ? "1" : "0"); }, [autoBots]);
+  useEffect(() => {
+    if (!autoBots || !state || busy || state.phase === "finished" || state.turn === state.viewer) return;
+    const id = window.setTimeout(() => { runBot(); }, 900);
+    return () => window.clearTimeout(id);
+  }, [autoBots, busy, state?.turn, state?.phase, state?.version]);
 
   const legal = useMemo(() => state?.legalActions ?? [], [state]);
   const buttonActions = legal.filter((a) => a.type !== "trade");
@@ -122,6 +129,7 @@ function App() {
       <div className="header-actions">
         <button className="ghost" onClick={refresh} disabled={busy}>Refresh</button>
         <button className="ghost" onClick={start} disabled={busy}>New table</button>
+        <button className={`ghost ${autoBots ? "lit" : ""}`} onClick={() => setAutoBots(!autoBots)} disabled={busy}>{autoBots ? "🤖 Auto" : "Bot manual"}</button>
       </div>
     </header>
 
@@ -137,8 +145,9 @@ function App() {
     </section>
 
     <TurnBanner state={state} />
-    <AuctionBanner state={state} />
-    <DebtBanner state={state} />
+    <TurnAssist state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
+    <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
+    <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
     <TablePulse state={state} />
     <PortfolioStrip state={state} />
     <RulesCard />
@@ -159,20 +168,21 @@ function App() {
     </section>
 
     <section className="card history"><h2>Latest log</h2>{[...state.history].reverse().slice(0, 14).map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>)}</section>
-    <MobileActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
+    <MobileActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
   </main>;
 }
 
-function MobileActionDock({ state, legal, busy, act, runBot }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void }) {
+function MobileActionDock({ state, legal, busy, act, runBot, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; autoBots: boolean }) {
   if (state.phase === "finished") return null;
   const latest = state.history[state.history.length - 1]?.message;
   const viewerTurn = state.turn === state.viewer && state.canAct;
-  const primary = legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building"].includes(a.type)).slice(0, 2);
+  const primary = (state.phase === "debt" ? legal : legal.filter((a) => !["mortgage", "unmortgage", "build", "sell_building", "trade"].includes(a.type))).slice(0, 2);
   return <div className={`mobile-action-dock ${viewerTurn ? "active" : "waiting"}`}>
     <div className="dock-summary"><strong>{viewerTurn ? "Tvoj ťah" : `${state.names[state.turn]} hrá`}</strong><span>{latest ?? "Čakáme na hod."}</span></div>
     <div className="dock-buttons">
       {viewerTurn && primary.map((a, idx) => <button className={`action-btn action-${a.type}`} key={`${a.type}-${a.spaceId ?? "x"}-${a.amount ?? idx}`} onClick={() => act(cleanAction(a))} disabled={busy}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>)}
-      {!viewerTurn && state.turn !== state.viewer && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Bot turn</button>}
+      {!viewerTurn && state.turn !== state.viewer && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Bot turn</button>}
+      {!viewerTurn && state.turn !== state.viewer && autoBots && <span className="dock-autobot">🤖 auto</span>}
       <button className="ghost" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>↑ Top</button>
     </div>
   </div>;
@@ -254,25 +264,46 @@ function spaceIcon(kind: string) {
 }
 
 
-function AuctionBanner({ state }: { state: GameState }) {
+
+function TurnAssist({ state, legal, busy, act, runBot, autoBots }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void; autoBots: boolean }) {
+  if (state.phase === "finished") return null;
+  const viewerTurn = state.canAct && state.turn === state.viewer;
+  const primary = legal.find((a) => ["roll", "buy", "bid_auction", "resolve_debt", "end_turn"].includes(a.type)) ?? legal[0];
+  const text = state.phase === "auction" ? "Dražba beží — bidni alebo passni." : state.phase === "debt" ? "Debt crisis — zohnať cash alebo bankrot." : state.phase === "buy" ? "Rozhodni: kúpiť alebo poslať do dražby." : state.phase === "roll" ? "Hoď kockami a nechaj kapitalizmus robiť škody." : "Sprav upkeep alebo ukonči ťah.";
+  return <section className="card turn-assist">
+    <div><span className="label">Table coach</span><strong>{viewerTurn ? "Tvoj move" : `${state.names[state.turn]} je na rade`}</strong><p>{text}</p></div>
+    <div className="assist-actions">
+      {viewerTurn && primary && <button className={`action-btn action-${primary.type}`} disabled={busy} onClick={() => act(cleanAction(primary))}><span>{actionIcon(primary.type)}</span>{primary.label ?? labelFor(primary.type)}</button>}
+      {!viewerTurn && state.turn !== state.viewer && !autoBots && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} play</button>}
+      {!viewerTurn && state.turn !== state.viewer && autoBots && <span className="auto-pill">🤖 Auto-bots running</span>}
+    </div>
+  </section>;
+}
+
+function AuctionBanner({ state, legal, busy, act, runBot }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void; runBot: () => void }) {
   if (state.phase !== "auction" || !state.auction) return null;
   const space = state.board[state.auction.spaceId];
   const high = state.auction.highBidder;
-  return <section className="card auction-banner">
-    <div><span className="label">Auction live</span><strong>🔨 {space.name}</strong></div>
-    <div><span className="label">High bid</span><strong>{high ? `${state.names[high]} · €${state.auction.currentBid}` : "no bids yet"}</strong></div>
-    <div><span className="label">Bidders in</span><strong>{state.auction.active.map((p) => state.names[p]).join(" · ")}</strong></div>
+  const bidActions = legal.filter((a) => a.type === "bid_auction");
+  const pass = legal.find((a) => a.type === "pass_auction");
+  return <section className="card auction-banner auction-stage">
+    <div className="auction-title"><span>🔨</span><div><p className="label">Auction live</p><h2>{space.name}</h2><p>{space.price ? `List price €${space.price}` : "Bank property"} · {space.kind.replace(/_/g, " ")}</p></div></div>
+    <div className="auction-meta"><span><b>High bid</b>{high ? `${state.names[high]} · €${state.auction.currentBid}` : "no bids yet"}</span><span><b>Bidders</b>{state.auction.active.map((p) => state.names[p]).join(" · ")}</span></div>
+    {state.canAct && <div className="auction-actions">{bidActions.map((a) => <button key={`${a.type}-${a.amount}`} className="action-btn action-bid_auction" disabled={busy} onClick={() => act(cleanAction(a))}>🔨 €{a.amount}</button>)}{pass && <button className="action-btn action-pass_auction" disabled={busy} onClick={() => act(cleanAction(pass))}>✋ Pass</button>}</div>}
+    {!state.canAct && state.turn !== state.viewer && <button className="ghost bot-button" onClick={runBot} disabled={busy}>🤖 Let {state.names[state.turn]} bid/pass</button>}
   </section>;
 }
 
 
-function DebtBanner({ state }: { state: GameState }) {
+function DebtBanner({ state, legal, busy, act }: { state: GameState; legal: (GameAction & { label?: string; spaceId?: number; amount?: number })[]; busy: boolean; act: (a: GameAction) => void }) {
   if (state.phase !== "debt" || !state.debt) return null;
   const creditor = state.debt.creditor;
-  return <section className="card debt-banner">
+  const emergency = legal.filter((a) => ["mortgage", "sell_building", "resolve_debt", "declare_bankruptcy"].includes(a.type)).slice(0, 4);
+  return <section className="card debt-banner debt-stage">
     <div><span className="label">Debt crisis</span><strong>💥 {state.names[state.debt.player]} owes €{state.debt.amount}</strong></div>
     <div><span className="label">Creditor</span><strong>{creditor ? state.names[creditor] : "Bank"}</strong></div>
     <p>Mortgage, sell buildings, trade for cash, or declare bankruptcy.</p>
+    {state.canAct && <div className="debt-actions">{emergency.map((a, idx) => <button key={`${a.type}-${a.spaceId ?? idx}`} className={`action-btn action-${a.type}`} disabled={busy} onClick={() => act(cleanAction(a))}><span>{actionIcon(a.type)}</span>{a.label ?? labelFor(a.type)}</button>)}</div>}
   </section>;
 }
 
