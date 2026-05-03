@@ -171,10 +171,10 @@ function Board({ state }: { state: GameState }) {
 }
 
 function tileStyle(id: number): React.CSSProperties {
-  if (id <= 10) return { gridColumn: 11 - id, gridRow: 11 };
-  if (id <= 20) return { gridColumn: 1, gridRow: 21 - id };
-  if (id <= 30) return { gridColumn: id - 19, gridRow: 1 };
-  return { gridColumn: 11, gridRow: id - 29 };
+  if (id <= 10) return { gridColumn: 11 - id, gridRow: 11, "--gc": 11 - id, "--gr": 11 } as React.CSSProperties;
+  if (id <= 20) return { gridColumn: 1, gridRow: 21 - id, "--gc": 1, "--gr": 21 - id } as React.CSSProperties;
+  if (id <= 30) return { gridColumn: id - 19, gridRow: 1, "--gc": id - 19, "--gr": 1 } as React.CSSProperties;
+  return { gridColumn: 11, gridRow: id - 29, "--gc": 11, "--gr": id - 29 } as React.CSSProperties;
 }
 
 function Tile({ space, state }: { space: Space; state: GameState }) {

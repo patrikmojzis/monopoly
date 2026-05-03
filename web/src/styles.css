@@ -159,3 +159,28 @@ header h1 span, .hero h1 span { color: #facc15; text-shadow: 0 0 28px rgba(250,2
 .classic-tile.go strong, .classic-tile.jail strong, .classic-tile.free_parking strong, .classic-tile.go_to_jail strong { color: #111827; }
 .tile .stripe { height: 13px; border-bottom: 1px solid rgba(24,32,43,.55); }
 .tokens { background: rgba(15,23,42,.08); border-radius: 999px; width: max-content; padding: 1px 4px; }
+
+
+/* Mobile play pass: make the board scrollable and controls sticky instead of microscopic. */
+@media (max-width: 760px) {
+  .app-shell { padding: 10px; }
+  .classic-layout { display: flex; flex-direction: column; }
+  .classic-board {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(78px, 1fr));
+    grid-template-rows: repeat(11, minmax(86px, 1fr));
+    min-width: 920px;
+    min-height: 920px;
+    aspect-ratio: 1 / 1;
+    overflow: visible;
+  }
+  .layout { overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x proximity; }
+  .board-center { grid-column: 2 / 11 !important; grid-row: 2 / 11 !important; }
+  .classic-tile { min-height: 86px; grid-column: var(--gc) !important; grid-row: var(--gr) !important; }
+  aside { display: flex; flex-direction: column; width: 100%; }
+  .actions { position: sticky; bottom: 8px; z-index: 20; border-color: rgba(250,204,21,.35); backdrop-filter: blur(18px); }
+  .actions button { min-height: 48px; }
+  .status-card { position: sticky; top: 0; z-index: 15; backdrop-filter: blur(16px); }
+  .tile strong { font-size: .68rem; }
+  .tile small { font-size: .58rem; }
+}
