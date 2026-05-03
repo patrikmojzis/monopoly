@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import time
 import uuid
 from pathlib import Path
 from dataclasses import asdict
@@ -144,9 +145,13 @@ def board_text(game_id: str, authorization: str | None = Header(default=None)) -
 
 
 @app.get("/api/games/{game_id}/wait")
-def wait_game(game_id: str, since: int = 0, authorization: str | None = Header(default=None)) -> dict:
+def wait_game(game_id: str, since: int = 0, timeout: int = 25, authorization: str | None = Header(default=None)) -> dict:
     state = require_game(game_id)
     viewer = token_for(state.tokens, authorization)
+    deadline = time.monotonic() + max(1, min(timeout, 55))
+    while state.version <= since and state.phase != "finished" and time.monotonic() < deadline:
+        time.sleep(0.5)
+        state = require_game(game_id)
     return public_state(state, viewer)
 
 
