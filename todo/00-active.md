@@ -2,7 +2,7 @@
 
 ## Current sprint: Game Mode v1
 
-Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/proposal-side browser QA passed; Phase H deployed/smoke OK/mobile QA pending; Phase I deployed/prod-smoked; visual QA pending.
+Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/proposal-side browser QA passed; Phase H deployed/smoke OK/mobile viewport certification limited by QA tooling; Phase I deployed/prod-smoked; QA found readability/default-player issues; patch 23a9002 deployed and quick visual QA pending.
 
 ## Rules for Clawd
 
@@ -28,11 +28,11 @@ Status: Phase A+B/C/D/E/F deployed and QA-smoked; Phase G deployed/API-smoked/pr
 
 ## Next action
 
-Wait for Phase H mobile QA and Phase I visual QA results. If green, run Phase J replay-ready checklist and create a fresh replay table/link; if not, patch issues first.
+Wait for quick visual QA on 23a9002. If green, run Phase J replay-ready checklist and create a fresh 2-player replay table/link; if not, patch remaining readability/default-player issues first.
 
 ## Last known deployed commit
 
-- `ee5cd58` — warm tabletop/physical-board art direction: paper tiles, wood board frame, tactile buttons/tokens; prod smoke OK.
+- `23a9002` — default table fixed to Patrik+Clawd, add/remove player controls, board text/owner/deed contrast readability patch; deploy smoke OK.
 
 ## Current critique of deployed commit
 
