@@ -151,25 +151,37 @@ function App() {
     </main>;
   }
 
-  return <main className={`game-mode-shell ${boardFocus ? "board-focus" : ""}`}>
-    <GameTopChrome state={state} busy={busy} refresh={refresh} start={start} setOpenDrawer={setOpenDrawer} boardFocus={boardFocus} setBoardFocus={setBoardFocus} soundOn={soundOn} setSoundOn={setSoundOn} />
-    <GameHud state={state} rollingDice={rollingDice} />
+  const currentSpace = state.board[state.pendingSpace ?? state.playerState[state.turn].position];
+  const detailSpace = selectedSpace ?? currentSpace;
 
-    <section className="game-board-stage">
+  return <main className={`game-mode-shell cockpit-shell ${boardFocus ? "board-focus" : ""}`}>
+    <aside className="cockpit-sidebar cockpit-left" aria-label="Game status and players">
+      <CockpitStatusPanel state={state} rollingDice={rollingDice} />
       <SeatRail state={state} />
+      <CockpitControls state={state} busy={busy} refresh={refresh} setOpenDrawer={setOpenDrawer} boardFocus={boardFocus} setBoardFocus={setBoardFocus} soundOn={soundOn} setSoundOn={setSoundOn} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} />
+    </aside>
+
+    <section className="cockpit-board-stage game-board-stage" aria-label="Board">
+      <div className="cockpit-mobile-seats"><SeatRail state={state} /></div>
       <div className="board-scroll">
         <div className="board-canvas">
-          <Board state={state} selectedId={selectedSpace?.id ?? null} onSelect={setSelectedSpaceId} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
+          <Board state={state} selectedId={detailSpace.id} onSelect={setSelectedSpaceId} legal={buttonActions} busy={busy} act={act} runBot={runBot} autoBots={autoBots} />
         </div>
       </div>
-      <BoardControls state={state} selectedId={selectedSpace?.id ?? null} />
-      {selectedSpace && <div className="floating-deed"><DeedCard state={state} space={selectedSpace} /></div>}
+      <BoardControls state={state} selectedId={detailSpace.id} />
+      <div className="floating-deed cockpit-mobile-deed"><DeedCard state={state} space={detailSpace} /></div>
+      <CockpitMobileTray setOpenDrawer={setOpenDrawer} boardFocus={boardFocus} setBoardFocus={setBoardFocus} />
       <AuctionBanner state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} />
       <DebtBanner state={state} legal={buttonActions} busy={busy} act={act} />
       <GameEffects state={state} />
     </section>
 
-    <GameActionDock state={state} legal={buttonActions} busy={busy} act={act} runBot={runBot} setOpenDrawer={setOpenDrawer} autoBots={autoBots} />
+    <aside className="cockpit-sidebar cockpit-right" aria-label="Tile details, trade, and log">
+      <CockpitDeedPanel state={state} space={detailSpace} />
+      <CockpitTradePanel state={state} setOpenDrawer={setOpenDrawer} />
+      <CockpitHistoryPanel state={state} setOpenDrawer={setOpenDrawer} />
+    </aside>
+
     <GameDrawer open={openDrawer} onClose={() => setOpenDrawer(null)} onExitToSetup={exitToSetup} state={state} created={created} error={error} refresh={refresh} start={start} autoBots={autoBots} setAutoBots={setAutoBots} hasNpcSeats={hasNpcSeats} setOpenDrawer={setOpenDrawer} selectedSpaceId={selectedSpaceId} setSelectedSpaceId={setSelectedSpaceId} act={act} busy={busy} />
   </main>;
 }
@@ -241,6 +253,95 @@ function GameDrawer({ open, onClose, onExitToSetup, state, created, error, refre
       </div>}
     </aside>
   </div>;
+}
+
+function CockpitStatusPanel({ state, rollingDice }: { state: GameState; rollingDice: boolean }) {
+  const viewerInfo = state.playerState[state.viewer];
+  const turnInfo = state.playerState[state.turn];
+  const activeSpace = state.board[state.pendingSpace ?? turnInfo.position];
+  const latest = state.history[state.history.length - 1]?.message;
+  return <section className="cockpit-panel cockpit-status">
+    <p className="eyebrow">{state.phase === "finished" ? "Game over" : "On turn"}</p>
+    <h2>{emojiFor(state, state.turn)} {state.names[state.turn]}</h2>
+    <div className="cockpit-status-grid">
+      <span>Phase <b>{phaseLabel(state.phase)}</b></span>
+      <span>Space <b>{activeSpace.name}</b></span>
+      <span>You <b>{emojiFor(state, state.viewer)} €{viewerInfo.cash}</b></span>
+      <span>Dice <b className={rollingDice ? "dice-rolling" : ""}>{state.lastRoll ? `${dieFace(state.lastRoll[0])} ${dieFace(state.lastRoll[1])}` : "🎲 🎲"}</b></span>
+      <span>Pot <b>€{state.freeParkingPot}</b></span>
+    </div>
+    <p className="cockpit-latest"><span>{eventIcon(String(state.history[state.history.length - 1]?.type ?? ""))}</span>{latest ?? "Waiting for first move."}</p>
+  </section>;
+}
+
+function CockpitControls({ state, busy, refresh, setOpenDrawer, boardFocus, setBoardFocus, soundOn, setSoundOn, autoBots, setAutoBots, hasNpcSeats }: { state: GameState; busy: boolean; refresh: () => void; setOpenDrawer: (drawer: DrawerName | null) => void; boardFocus: boolean; setBoardFocus: (value: boolean) => void; soundOn: boolean; setSoundOn: (value: boolean) => void; autoBots: boolean; setAutoBots: (value: boolean) => void; hasNpcSeats: boolean }) {
+  return <section className="cockpit-panel cockpit-controls">
+    <div className="section-title"><h2>Table menu</h2><span>v{state.version}</span></div>
+    <p className="cockpit-game-id">Game {state.id}</p>
+    <div className="cockpit-control-grid">
+      <button className="ghost" onClick={() => setBoardFocus(!boardFocus)}>{boardFocus ? "Exit focus" : "Board focus"}</button>
+      <button className="ghost" onClick={() => setOpenDrawer("cards")}>Cards</button>
+      <button className="ghost" onClick={() => setOpenDrawer("trade")}>Trade</button>
+      <button className="ghost" onClick={() => setOpenDrawer("players")}>Players</button>
+      <button className="ghost" onClick={() => setOpenDrawer("log")}>Log</button>
+      <button className="ghost" onClick={() => setOpenDrawer("rules")}>Rules</button>
+      <button className="ghost" onClick={() => setSoundOn(!soundOn)}>{soundOn ? "Sound on" : "Sound off"}</button>
+      <button className="ghost" onClick={refresh} disabled={busy}>Refresh</button>
+      <button className="ghost cockpit-menu-button" onClick={() => setOpenDrawer("menu")}>Menu</button>
+    </div>
+    {hasNpcSeats && <label className="cockpit-toggle"><input type="checkbox" checked={autoBots} onChange={(e) => setAutoBots(e.target.checked)} /> Auto-play NPCs</label>}
+  </section>;
+}
+
+function CockpitDeedPanel({ state, space }: { state: GameState; space: Space }) {
+  const activeId = state.pendingSpace ?? state.playerState[state.turn].position;
+  return <section className="cockpit-panel cockpit-deed-panel">
+    <div className="section-title"><h2>{space.id === activeId ? "Landed tile" : "Selected tile"}</h2><span>#{space.id}</span></div>
+    <DeedCard state={state} space={space} />
+  </section>;
+}
+
+function CockpitTradePanel({ state, setOpenDrawer }: { state: GameState; setOpenDrawer: (drawer: DrawerName | null) => void }) {
+  const pending = state.pendingTrade;
+  const canTrade = state.legalActions.some((a) => a.type === "propose_trade");
+  const from = pending ? pending.from_player ?? pending.fromPlayer : null;
+  const to = pending ? pending.to_player ?? pending.toPlayer : null;
+  const cashFrom = pending ? pending.cash_from ?? pending.cashFrom ?? 0 : 0;
+  const cashTo = pending ? pending.cash_to ?? pending.cashTo ?? 0 : 0;
+  const propsFrom = pending ? pending.properties_from ?? pending.propertiesFrom ?? [] : [];
+  const propsTo = pending ? pending.properties_to ?? pending.propertiesTo ?? [] : [];
+  const fromName = from ? state.names[from] : "Player";
+  const toName = to ? state.names[to] : "Player";
+  return <section className={`cockpit-panel cockpit-trade ${pending ? "trade-pending" : canTrade ? "trade-ready" : "trade-locked"}`}>
+    <div className="section-title"><h2>Trade</h2><button className="ghost" onClick={() => setOpenDrawer("trade")}>{pending && to === state.viewer ? "Respond" : "Open"}</button></div>
+    {pending ? <div className="cockpit-trade-summary">
+      <strong>{fromName} ⇄ {toName}</strong>
+      <span>{fromName} gives {propsFrom.length} deed(s) + €{cashFrom}</span>
+      <span>{toName} gives {propsTo.length} deed(s) + €{cashTo}</span>
+      <small>{to === state.viewer ? "Needs your answer." : "Waiting for response."}</small>
+    </div> : <>
+      <p>{canTrade ? "Ready now — propose a cash/property swap." : "Available after roll/end when the rules allow it."}</p>
+      <button className="action-btn action-propose_trade" onClick={() => setOpenDrawer("trade")}>🤝 Trade desk</button>
+    </>}
+  </section>;
+}
+
+function CockpitHistoryPanel({ state, setOpenDrawer }: { state: GameState; setOpenDrawer: (drawer: DrawerName | null) => void }) {
+  const recent = [...state.history].reverse().slice(0, 5);
+  return <section className="cockpit-panel cockpit-history">
+    <div className="section-title"><h2>Table log</h2><button className="ghost" onClick={() => setOpenDrawer("log")}>Open</button></div>
+    {recent.length ? recent.map((h, i) => <p key={i}><span>{eventIcon(String(h.type ?? ""))}</span>{h.message ?? JSON.stringify(h)}</p>) : <p><span>•</span>Waiting for first move.</p>}
+  </section>;
+}
+
+function CockpitMobileTray({ setOpenDrawer, boardFocus, setBoardFocus }: { setOpenDrawer: (drawer: DrawerName | null) => void; boardFocus: boolean; setBoardFocus: (value: boolean) => void }) {
+  return <nav className="cockpit-mobile-tray" aria-label="Cockpit quick menu">
+    <button className="ghost" onClick={() => setOpenDrawer("cards")}>Cards</button>
+    <button className="ghost" onClick={() => setOpenDrawer("trade")}>Trade</button>
+    <button className="ghost" onClick={() => setOpenDrawer("log")}>Log</button>
+    <button className="ghost" onClick={() => setOpenDrawer("menu")}>Menu</button>
+    <button className="ghost" onClick={() => setBoardFocus(!boardFocus)}>{boardFocus ? "HUD" : "Focus"}</button>
+  </nav>;
 }
 
 function playGameSound(enabled: boolean, type: string) {

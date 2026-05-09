@@ -1026,3 +1026,566 @@ button.ghost { background: rgba(255,244,214,.08); border-color: rgba(255,244,214
 .trade-guide.trade-ready ol { color: #dcfce7; }
 .trade-desk[open] { box-shadow: 0 16px 42px rgba(0,0,0,.18); }
 .trade-columns strong { display: block; margin-bottom: 6px; color: #fef3c7; }
+
+/* Mission 1: fullscreen cockpit — board-first active game layout. */
+body.game-mode-active,
+body.game-mode-active #root {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.game-mode-shell.cockpit-shell {
+  --cockpit-left: clamp(176px, 16vw, 220px);
+  --cockpit-right: clamp(220px, 21vw, 300px);
+  --cockpit-gap: 8px;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: var(--cockpit-left) minmax(0, 1fr) var(--cockpit-right);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--cockpit-gap);
+  color: #e5e7eb;
+  overflow: hidden;
+}
+
+.cockpit-sidebar,
+.game-mode-shell.cockpit-shell .cockpit-board-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.cockpit-sidebar {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(69,38,19,.72), rgba(15,23,42,.62));
+  border: 1px solid rgba(250,204,21,.18);
+  box-shadow: inset 0 1px 0 rgba(255,244,214,.08), 0 18px 55px rgba(0,0,0,.24);
+  backdrop-filter: blur(14px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(250,204,21,.35) rgba(15,23,42,.18);
+}
+
+.cockpit-panel {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(2,6,23,.28);
+  border: 1px solid rgba(255,244,214,.11);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.cockpit-panel .section-title h2 {
+  color: #fef3c7;
+  font-size: .98rem;
+  line-height: 1.05;
+}
+
+.cockpit-panel .section-title span {
+  color: #fde68a;
+  font-size: .75rem;
+  font-weight: 900;
+}
+
+.game-mode-shell.cockpit-shell > .game-top-chrome,
+.game-mode-shell.cockpit-shell > .game-hud,
+.game-mode-shell.cockpit-shell > .game-action-dock {
+  display: none !important;
+}
+
+.game-mode-shell.cockpit-shell .cockpit-board-stage {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 26px;
+}
+
+.game-mode-shell.cockpit-shell .board-scroll {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  overscroll-behavior: contain;
+}
+
+.game-mode-shell.cockpit-shell .board-canvas {
+  min-width: max-content;
+  display: grid;
+  place-items: center;
+}
+
+.game-mode-shell.cockpit-shell .classic-board {
+  --cockpit-board: min(
+    calc(100dvh - 24px),
+    calc(100vw - var(--cockpit-left) - var(--cockpit-right) - 44px),
+    980px
+  );
+  width: var(--cockpit-board);
+  height: var(--cockpit-board);
+  min-width: var(--cockpit-board);
+  min-height: var(--cockpit-board);
+  aspect-ratio: 1 / 1;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-rows: repeat(11, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px;
+}
+
+.cockpit-sidebar .seat-rail {
+  position: static;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.cockpit-sidebar .seat-card {
+  grid-template-columns: auto minmax(0,1fr) auto;
+  padding: 8px;
+  border-radius: 15px;
+}
+
+.cockpit-sidebar .seat-card b::before,
+.cockpit-sidebar .seat-card i {
+  display: none;
+}
+
+.cockpit-sidebar .seat-card small {
+  max-width: 100%;
+}
+
+.cockpit-sidebar .seat-card.active::after {
+  left: auto;
+  right: 8px;
+  top: 4px;
+  bottom: auto;
+}
+
+.cockpit-status h2 {
+  margin: 0 0 8px;
+  color: #fef3c7;
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+}
+
+.cockpit-status-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.cockpit-status-grid span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  color: #cbd5e1;
+  font-size: .82rem;
+}
+
+.cockpit-status-grid b {
+  color: #fde68a;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cockpit-status-grid .dice-rolling {
+  display: inline-block;
+  animation: diceHudShake .42s cubic-bezier(.2,.9,.2,1);
+}
+
+.cockpit-latest {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: #dbeafe;
+  font-size: .78rem;
+  line-height: 1.2;
+}
+
+.cockpit-latest span {
+  flex: 0 0 auto;
+}
+
+.cockpit-game-id {
+  margin: 8px 0;
+  color: #94a3b8;
+  font-size: .72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cockpit-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 6px;
+}
+
+.cockpit-control-grid button {
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 13px;
+  font-size: .78rem;
+}
+
+.cockpit-control-grid .cockpit-menu-button {
+  grid-column: 1 / -1;
+}
+
+.cockpit-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 14px;
+  background: rgba(255,244,214,.07);
+  color: #fef3c7;
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.cockpit-toggle input {
+  width: auto;
+  margin: 0;
+}
+
+.cockpit-deed-panel {
+  padding: 8px;
+}
+
+.cockpit-deed-panel .section-title {
+  margin: 2px 2px 8px;
+}
+
+.cockpit-deed-panel .deed-card {
+  margin: 0;
+  position: static !important;
+  box-shadow: none;
+  border-radius: 16px;
+}
+
+.cockpit-deed-panel .deed-body {
+  padding: 10px;
+}
+
+.cockpit-deed-panel .deed-card h2 {
+  font-size: clamp(1.08rem, 1.8vw, 1.45rem);
+  margin-bottom: 8px;
+}
+
+.cockpit-deed-panel .deed-grid {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.cockpit-deed-panel .deed-grid span {
+  padding: 7px;
+}
+
+.cockpit-trade {
+  display: grid;
+  gap: 8px;
+}
+
+.cockpit-trade.trade-ready {
+  border-color: rgba(74,222,128,.28);
+  background: linear-gradient(135deg, rgba(22,101,52,.22), rgba(2,6,23,.30));
+}
+
+.cockpit-trade.trade-pending {
+  border-color: rgba(56,189,248,.34);
+  background: linear-gradient(135deg, rgba(30,64,175,.28), rgba(2,6,23,.30));
+}
+
+.cockpit-trade p,
+.cockpit-trade-summary span,
+.cockpit-trade-summary small {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: .82rem;
+  line-height: 1.25;
+}
+
+.cockpit-trade-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.cockpit-trade-summary strong {
+  color: #fef3c7;
+}
+
+.cockpit-trade .action-btn {
+  min-height: 42px;
+  padding: 0 10px;
+  border-radius: 14px;
+}
+
+.cockpit-history p {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: #e5e7eb;
+  font-size: .80rem;
+  line-height: 1.2;
+}
+
+.cockpit-history p span {
+  flex: 0 0 auto;
+}
+
+.game-mode-shell.cockpit-shell .auction-banner,
+.game-mode-shell.cockpit-shell .debt-banner {
+  left: 50%;
+  bottom: 12px;
+  width: min(680px, calc(100% - 32px));
+  z-index: 14;
+}
+
+.game-mode-shell.cockpit-shell .board-controls {
+  left: 12px;
+  bottom: 12px;
+  right: auto;
+  z-index: 15;
+}
+
+.game-mode-shell.cockpit-shell .cockpit-mobile-deed,
+.cockpit-mobile-seats,
+.cockpit-mobile-tray {
+  display: none;
+}
+
+.game-mode-shell.cockpit-shell.board-focus {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.game-mode-shell.cockpit-shell.board-focus .cockpit-sidebar {
+  opacity: 0;
+  pointer-events: none;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+}
+
+.game-mode-shell.cockpit-shell.board-focus .classic-board {
+  --cockpit-board: min(calc(100dvh - 20px), calc(100vw - 20px), 1040px);
+}
+
+.game-mode-shell.cockpit-shell.board-focus .board-scroll {
+  padding: 6px;
+  place-items: center;
+}
+
+.game-mode-shell.cockpit-shell.board-focus .board-controls {
+  bottom: 10px;
+  left: 12px;
+  right: auto;
+  transform: none;
+}
+
+@media (max-width: 1100px) {
+  .game-mode-shell.cockpit-shell {
+    --cockpit-left: clamp(166px, 17vw, 196px);
+    --cockpit-right: clamp(200px, 22vw, 252px);
+  }
+
+  .cockpit-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cockpit-control-grid .cockpit-menu-button {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 1050px) {
+  .game-mode-shell.cockpit-shell,
+  .game-mode-shell.cockpit-shell.board-focus {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    padding: max(5px, env(safe-area-inset-top)) 5px max(5px, env(safe-area-inset-bottom));
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-sidebar {
+    display: none;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-board-stage {
+    border-radius: 20px;
+  }
+
+  .cockpit-mobile-seats {
+    display: block;
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 6px;
+    z-index: 12;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-rail {
+    position: static;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-card {
+    min-width: 156px;
+    grid-template-columns: auto minmax(0,1fr) auto;
+    padding: 6px 7px;
+    border-radius: 14px;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-card b::before,
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-card i {
+    display: none;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-seats .seat-card small {
+    max-width: 86px;
+  }
+
+  .game-mode-shell.cockpit-shell .board-scroll,
+  .game-mode-shell.cockpit-shell.board-focus .board-scroll {
+    place-items: start;
+    padding: 72px 8px 134px;
+    scroll-padding: 92px 18px 140px;
+  }
+
+  .game-mode-shell.cockpit-shell .classic-board,
+  .game-mode-shell.cockpit-shell.board-focus .classic-board {
+    width: min(860px, 220vw);
+    height: min(860px, 220vw);
+    min-width: min(860px, 220vw);
+    min-height: min(860px, 220vw);
+    gap: 3px;
+    padding: 6px;
+  }
+
+  .game-mode-shell.cockpit-shell .board-controls,
+  .game-mode-shell.cockpit-shell.board-focus .board-controls {
+    left: 8px;
+    right: 8px;
+    bottom: 58px;
+    width: auto;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 18px;
+    transform: none;
+  }
+
+  .game-mode-shell.cockpit-shell .board-controls button {
+    flex: 1;
+    min-height: 34px;
+    padding: 0 6px;
+    font-size: .76rem;
+  }
+
+  .cockpit-mobile-tray {
+    display: flex;
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 16;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 18px;
+    background: rgba(15,23,42,.72);
+    border: 1px solid rgba(250,204,21,.20);
+    box-shadow: 0 18px 60px rgba(0,0,0,.26);
+    backdrop-filter: blur(14px);
+  }
+
+  .cockpit-mobile-tray button {
+    flex: 1;
+    min-height: 38px;
+    padding: 0 6px;
+    border-radius: 12px;
+    font-size: .74rem;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed {
+    display: block;
+    position: absolute;
+    top: auto;
+    right: 8px;
+    bottom: 108px;
+    width: min(280px, calc(100vw - 132px));
+    max-height: 32dvh;
+    overflow: auto;
+    z-index: 11;
+    filter: drop-shadow(0 20px 45px rgba(0,0,0,.28));
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed .deed-card {
+    position: static !important;
+    margin: 0;
+    box-shadow: none;
+    transform-origin: bottom right;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed .deed-body {
+    padding: 9px;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed .deed-card h2 {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed .deed-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .game-mode-shell.cockpit-shell .auction-banner,
+  .game-mode-shell.cockpit-shell .debt-banner {
+    bottom: 108px;
+    width: min(680px, calc(100% - 20px));
+    max-height: 42dvh;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .game-mode-shell.cockpit-shell .classic-board,
+  .game-mode-shell.cockpit-shell.board-focus .classic-board {
+    width: 820px;
+    height: 820px;
+    min-width: 820px;
+    min-height: 820px;
+  }
+
+  .game-mode-shell.cockpit-shell .cockpit-mobile-deed {
+    width: min(238px, calc(100vw - 118px));
+  }
+
+  .cockpit-mobile-tray {
+    gap: 4px;
+  }
+
+  .cockpit-mobile-tray button {
+    font-size: .68rem;
+  }
+}
